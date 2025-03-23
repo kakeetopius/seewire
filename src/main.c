@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 
     char* error_message = "Usage: ./capture <interface> -a to capture all packets.\nUsage: ./capture <interface> -f <filter> to filter the packets\nUse flag -p to set promiscous mode\n";
     List lst = createList();
-    printList(lst);
+    destroyList(lst);
     //--arg indicators--
     int a = 0;
     int f = 0;
@@ -53,6 +53,10 @@ int main(int argc, char** argv) {
     //---Checking for flags---
     for (int i = 2; i < argc; i++) {
         if (*(argv[i]) == '-') {
+            if(strlen(argv[i]) != 2) {
+                printf("Unknown Option: %s\n", argv[i]);
+                return -1;
+            }
             flag = *(argv[i] + 1);
             switch(flag) {
                 case 'p':
