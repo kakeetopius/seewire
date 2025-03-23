@@ -1,7 +1,7 @@
 CC = gcc
 
 CFLAGS = -g -std=c99 -D_DEFAULT_SOURCE  -Wall -IIncludes 
-LDFLAGS = -LLib 
+LDFLAGS = -L./Lib -Wl,-rpath=../Lib
 LDLIBS = -llist -lpcap
 
 SRC = src/main.c
