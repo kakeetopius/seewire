@@ -142,12 +142,7 @@ int main(int argc, char** argv) {
         if (status != 0) {
             pcap_perror(handle, "Error set promiscous mode ");
         }
-    
-        if (*interface == 'w') {
-            pcap_set_rfmon(handle, 1);
-        }  
     }
-    
     
     status = pcap_activate(handle);
     if (status != 0) {
