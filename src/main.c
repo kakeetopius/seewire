@@ -1,15 +1,15 @@
-#include <pcap/pcap.h>
+#include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <pcap.h>
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <sys/types.h>
 #include <net/ethernet.h>
+
+#include "../Includes/list.h"
 
 
 #define ETHER_HEADER_LEN (sizeof(struct ether_header))
@@ -31,7 +31,8 @@ char errbuff[PCAP_ERRBUF_SIZE];
 int main(int argc, char** argv) {
 
     char* error_message = "Usage: ./capture <interface> -a to capture all packets.\nUsage: ./capture <interface> -f <filter> to filter the packets\nUse flag -p to set promiscous mode\n";
-   
+    List lst = createList();
+    printList(lst);
     //--arg indicators--
     int a = 0;
     int f = 0;
