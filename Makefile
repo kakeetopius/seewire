@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -g -std=c99 -D_DEFAULT_SOURCE  -Wall -IIncludes 
+CFLAGS = -g -std=c99 -D_DEFAULT_SOURCE -Wall -IIncludes 
 LDFLAGS = -L./Lib -Wl,-rpath=../Lib
 LDLIBS = -llist -lpcap
 

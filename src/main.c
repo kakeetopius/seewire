@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <netinet/ether.h>
 #include <netinet/ip.h>
@@ -12,6 +14,8 @@
 
 int status; /*For error checking*/
 char errbuff[PCAP_ERRBUF_SIZE]; /*For error message*/
+unsigned long long packet_count; /*For packet captured count*/
+time_t start, stop; /*For capture duration*/
 
 int main(int argc, char** argv) {
 
@@ -30,7 +34,7 @@ int main(int argc, char** argv) {
         free(filter);
     }
 
-    pcap_t* handle = set_up_handle(flags, argv[1]);
+    pcap_t* handle = set_up_handle(flags, argv[1]); //argv[1] is the interface to set up the handle
     if (handle == NULL) {
         exit(-1);
     }
@@ -45,23 +49,68 @@ int main(int argc, char** argv) {
         free(filter);
     }
 
+    setup_signal_handler();
+
     //capture packets in an infinite loop.
+    time(&start); // starting time
     pcap_loop(handle, -1, callback, NULL);
     pcap_freecode(&bp_filter);
     pcap_close(handle);
     return 0;
 }
 
+int setup_signal_handler() {
+    struct sigaction new_action;
+    
+    /*Setting up new signal action*/
+    memset(&new_action, '\0', sizeof(new_action));
+    new_action.sa_sigaction = signal_handler;
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = SA_SIGINFO;
+
+    if(sigaction(SIGINT, &new_action, NULL) < 0) {
+        perror("SIGACTION");
+        return -1;
+    }
+    else 
+        return 0;
+}
+
+void signal_handler(int signum, siginfo_t* info, void* context) {
+    if(info->si_signo != SIGINT) {
+       return;
+    }
+
+    //---Stopping time----
+    time(&stop);
+
+    //----Buffers for data and time strings
+    char start_buff[30] = "\0";
+    char stop_buff[30] = "\0";
+  
+    //------Getting info data time info as string-------
+    strftime(start_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(&start));
+    strftime(stop_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(&stop));
+
+    //-------Difference between start and stop-------
+    double capture_time = difftime(stop, start);
+
+    printf("*************************************\n");
+    printf("Stopping Packet Capture......\n");
+    printf("Total Packets Captured: %llu\n", packet_count);
+    printf("Total Capturing Time: %.2f seconds\n", capture_time);
+    printf("Start Time: %s\n", start_buff);
+    printf("Stop Time:  %s\n", stop_buff);
+    exit(0);
+}
 
 void callback(u_char *user, const struct pcap_pkthdr* hdr, const u_char *packet_data) {
-    static unsigned long packet_count = 1;
+    ++packet_count;
     printf("--------------------------------------------------------------------------------------------------\n");
     printf("Captured packet\nTotal Packet Length: %d\n", hdr->len);
-    printf("Packet Count: %lu\n", packet_count);
+    printf("Packet Count: %llu\n", packet_count);
 
     handle_ethernet(packet_data);
-    
-    packet_count++;
 }
 
 

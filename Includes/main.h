@@ -23,5 +23,7 @@ void handle_udp(const u_char* packet);
 int handle_input(int argc, char** argv, char** filter);
 pcap_t* set_up_handle(int flags, char* interface);
 int set_up_bpf(pcap_t* handle, struct bpf_program* bp_filter, char* filter);
+void signal_handler(int signum, siginfo_t* info, void* context);
+int setup_signal_handler();
 
 #endif
