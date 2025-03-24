@@ -95,8 +95,8 @@ void signal_handler(int signum, siginfo_t* info, void* context) {
     //-------Difference between start and stop-------
     double capture_time = difftime(stop, start);
 
-    printf("*************************************\n");
-    printf("Stopping Packet Capture......\n");
+    printf("\n\n*************************************\n");
+    printf("Stopped Packet Capture......\n");
     printf("Total Packets Captured: %llu\n", packet_count);
     printf("Total Capturing Time: %.2f seconds\n", capture_time);
     printf("Start Time: %s\n", start_buff);
@@ -106,9 +106,10 @@ void signal_handler(int signum, siginfo_t* info, void* context) {
 
 void callback(u_char *user, const struct pcap_pkthdr* hdr, const u_char *packet_data) {
     ++packet_count;
-    printf("--------------------------------------------------------------------------------------------------\n");
-    printf("Captured packet\nTotal Packet Length: %d\n", hdr->len);
-    printf("Packet Count: %llu\n", packet_count);
+    printf("+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+**+*+*+*+*+*\n");
+    printf("Captured packet\n");
+    printf("Total Packet Length:     %d\n", hdr->len);
+    printf("Packet Count:            %llu\n", packet_count);
 
     handle_ethernet(packet_data);
 }
@@ -121,47 +122,25 @@ void handle_ethernet(const u_char* packet) {
     u_int8_t* ptr; 
 
     ether_hdr = (struct ether_header*) packet;
+   
+    int char_addr_len = ETHER_ADDR_LEN * 2 + 5 + 1; //each xcter plus 5 colons plus one null terminator 
+    char src[char_addr_len];
+    char dst[char_addr_len];
 
-    //begginning with source hardware address.
     ptr = ether_hdr->ether_shost;
-    int i = ETHER_ADDR_LEN;
-    
-    printf("================ETHER================\n");
-    printf("Source Address: ");
-    while(i > 0) {
-        if (i == ETHER_ADDR_LEN) {
-            printf(" "); //to prevent starting with colon
-        }
-        else {
-            printf(":");
-        }
-        printf("%x", *ptr);
-        ptr++;
-        i--;
-    }
-
+    snprintf(src, char_addr_len, "%02x:%02x:%02x:%02x:%02x:%02x", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]); // 0 for padding 2 for max width
     ptr = ether_hdr->ether_dhost;
-    i = ETHER_ADDR_LEN;
-    printf("\nDestination Address: ");
-    while(i > 0) {
-        if (i == ETHER_ADDR_LEN) {
-            printf(" "); 
-        }
-        else {
-            printf(":");
-        }
-        printf("%x", *ptr);
-        ptr++;
-        i--;
-    }
-    printf("\n");
+    snprintf(dst, char_addr_len, "%02x:%02x:%02x:%02x:%02x:%02x", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+
+    printf("|*----------------------ETHER----------------------*|\n");
+    printf("Source MAC:              %s\n", src);
+    printf("Destination MAC:         %s\n", dst);
 
     if (ntohs(ether_hdr->ether_type) == ETHERTYPE_IP) {
-        printf("Captured an IP packet\n");
         handle_ip4(packet + ETHER_HEADER_LEN);
     }
     else if (ntohs(ether_hdr->ether_type) == ETHERTYPE_ARP) {
-        printf("Captured an ARP packet\n");
+        
     }
     else {
         printf("Captured unsupported packet\n");
@@ -176,28 +155,23 @@ void handle_ip4(const u_char* packet) {
     ip_header = (struct ip*)(packet);
     int iplen = IP_HEADER_LEN(ip_header);
 
-    printf("=================IP=================\n");
-    if (ip_header->ip_v  == IPVERSION) {
-        printf("Ipv4 address got\n");
-    }
-    else{
-        printf("Not ip4\n");
+    printf("|*----------------------IPv4----------------------*|\n");
+    if (ip_header->ip_v  != IPVERSION) {
         return;
     }
 
     //extracting the info
-    printf("IP Header Length: %d bytes\n", iplen);
     char* srcip = inet_ntoa(ip_header->ip_src);
-    printf("The Source Ip is: %s\n", srcip);
+
+    printf("Header Length:           %d bytes\n", iplen);
+    printf("Source IP:               %s\n", srcip);
     char* dstip = inet_ntoa(ip_header->ip_dst);
-    printf("The Destination Ip is: %s\n", dstip);
+    printf("Destination IP:          %s\n", dstip);
 
     if (ip_header->ip_p == IPPROTO_TCP){
-        printf("TCP packet captured\n");
         handle_tcp(packet + iplen);
     }
     else if (ip_header->ip_p == IPPROTO_UDP) {
-        printf("UDP packet captured\n");
         handle_udp(packet + iplen);
     }
     else {
@@ -208,25 +182,25 @@ void handle_ip4(const u_char* packet) {
 }   
 
 void handle_tcp(const u_char* packet) {
-    printf("=================TCP=================\n");
+    printf("|*-----------------------TCP-----------------------*|\n");
     struct tcphdr* tcp_header;  
     tcp_header = (struct tcphdr*)(packet);
     int tcplen = TCP_HEADER_LEN(tcp_header);
 
-    printf("TCP header length: %d bytes\n", tcplen);
-    printf("Source port: %d\n", ntohs(tcp_header->source));
-    printf("Destination port: %d\n",  ntohs(tcp_header->dest));
+    printf("Header length:           %d bytes\n", tcplen);
+    printf("Source Port:             %d\n", ntohs(tcp_header->source));
+    printf("Destination Port:        %d\n",  ntohs(tcp_header->dest));
 }
 
 void handle_udp(const u_char* packet) {
-    printf("================UDP================\n");
+    printf("|*-----------------------UDP----------------------*|\n");
     struct udphdr* udp_header;
     udp_header = (struct udphdr*)(packet);
     int udplen = UDP_HEADER_LEN;
 
-    printf("UDP header length: %d bytes\n", udplen);
-    printf("Source Port: %d\n", ntohs(udp_header->source));
-    printf("Destination Port: %d\n", ntohs(udp_header->dest));
+    printf("Header length:           %d bytes\n", udplen);
+    printf("Source Port:             %d\n", ntohs(udp_header->source));
+    printf("Destination Port:        %d\n", ntohs(udp_header->dest));
 }
 
 int handle_input(int argc, char** argv, char** filter) {
