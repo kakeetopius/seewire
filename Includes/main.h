@@ -1,12 +1,20 @@
 #ifndef MAIN_H
 #define MAIN_H
+
+/*-------------------NEEDED NETWORK AND SIGNAL INCLUDE FILES-------------------------*/
+#include <signal.h>
+#include <stdint.h>
 #include <pcap.h>
 
-/*--------------------MACROS FOR HEADER LENGTHS-----------------------------------*/
-#define ETHER_HEADER_LEN (sizeof(struct ether_header))
-#define IP_HEADER_LEN(i) ((i)->ip_hl * 4)
-#define TCP_HEADER_LEN(i) ((i)->doff * 4)
-#define UDP_HEADER_LEN (sizeof(struct udphdr)) 
+/*--------------------------DNS HEADER 12BYTES------------------------------------*/
+struct dns_header {
+    uint16_t transaction_id;
+    uint16_t flags;
+    uint16_t qdcount;
+    uint16_t ancount;
+    uint16_t nscount;
+    uint16_t arcount;
+};
 
 /*---------------------FLAGS FOR INPUTTED OPTIONS----------------------------------*/
 #define A_FLAG 0x01  //00000001
@@ -16,14 +24,14 @@
 
 /*---------------------FUNCTION DECLARATIONS FOR MAIN FILE---------------------------------------*/
 void callback(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
-void handle_ethernet(const u_char* packet);
-void handle_ip4(const u_char* packet);
-void handle_tcp(const u_char* packet);
-void handle_udp(const u_char* packet);
 int handle_input(int argc, char** argv, char** filter);
 pcap_t* set_up_handle(int flags, char* interface);
 int set_up_bpf(pcap_t* handle, struct bpf_program* bp_filter, char* filter);
 void signal_handler(int signum, siginfo_t* info, void* context);
 int setup_signal_handler();
+
+
+void handle_dns(const u_char* packet, int msg_len);
+void print_dns_message(const u_char* packet, int msg_len, int qr);
 
 #endif

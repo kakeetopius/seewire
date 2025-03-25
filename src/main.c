@@ -1,16 +1,13 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
+#include <sys/types.h>
 #include <time.h>
-#include <sys/socket.h>
-#include <netinet/ether.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
-#include <net/ethernet.h>
+
 
 #include "../Includes/main.h"
+#include "../Includes/cus_ether.h"
 
 int status; /*For error checking*/
 char errbuff[PCAP_ERRBUF_SIZE]; /*For error message*/
@@ -111,96 +108,7 @@ void callback(u_char *user, const struct pcap_pkthdr* hdr, const u_char *packet_
     printf("Total Packet Length:     %d\n", hdr->len);
     printf("Packet Count:            %llu\n", packet_count);
 
-    handle_ethernet(packet_data);
-}
-
-
-void handle_ethernet(const u_char* packet) {
-    struct ether_header* ether_hdr; //ethernet header
-
-    //printing out hardware info
-    u_int8_t* ptr; 
-
-    ether_hdr = (struct ether_header*) packet;
-   
-    int char_addr_len = ETHER_ADDR_LEN * 2 + 5 + 1; //each xcter plus 5 colons plus one null terminator 
-    char src[char_addr_len];
-    char dst[char_addr_len];
-
-    ptr = ether_hdr->ether_shost;
-    snprintf(src, char_addr_len, "%02x:%02x:%02x:%02x:%02x:%02x", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]); // 0 for padding 2 for max width
-    ptr = ether_hdr->ether_dhost;
-    snprintf(dst, char_addr_len, "%02x:%02x:%02x:%02x:%02x:%02x", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
-
-    printf("|*----------------------ETHER----------------------*|\n");
-    printf("Source MAC:              %s\n", src);
-    printf("Destination MAC:         %s\n", dst);
-
-    if (ntohs(ether_hdr->ether_type) == ETHERTYPE_IP) {
-        handle_ip4(packet + ETHER_HEADER_LEN);
-    }
-    else if (ntohs(ether_hdr->ether_type) == ETHERTYPE_ARP) {
-        
-    }
-    else {
-        printf("Captured unsupported packet\n");
-        printf("Packet identifier: %x\n", ntohs(ether_hdr->ether_type));
-        return;
-    }
-}   
-
-void handle_ip4(const u_char* packet) {
-    struct ip* ip_header;          
-
-    ip_header = (struct ip*)(packet);
-    int iplen = IP_HEADER_LEN(ip_header);
-
-    printf("|*----------------------IPv4----------------------*|\n");
-    if (ip_header->ip_v  != IPVERSION) {
-        return;
-    }
-
-    //extracting the info
-    char* srcip = inet_ntoa(ip_header->ip_src);
-
-    printf("Header Length:           %d bytes\n", iplen);
-    printf("Source IP:               %s\n", srcip);
-    char* dstip = inet_ntoa(ip_header->ip_dst);
-    printf("Destination IP:          %s\n", dstip);
-
-    if (ip_header->ip_p == IPPROTO_TCP){
-        handle_tcp(packet + iplen);
-    }
-    else if (ip_header->ip_p == IPPROTO_UDP) {
-        handle_udp(packet + iplen);
-    }
-    else {
-        printf("Unsupported protocol\n");
-        printf("The protocol identifier is %d\n", ip_header->ip_p);
-        return;
-    }
-}   
-
-void handle_tcp(const u_char* packet) {
-    printf("|*-----------------------TCP-----------------------*|\n");
-    struct tcphdr* tcp_header;  
-    tcp_header = (struct tcphdr*)(packet);
-    int tcplen = TCP_HEADER_LEN(tcp_header);
-
-    printf("Header length:           %d bytes\n", tcplen);
-    printf("Source Port:             %d\n", ntohs(tcp_header->source));
-    printf("Destination Port:        %d\n",  ntohs(tcp_header->dest));
-}
-
-void handle_udp(const u_char* packet) {
-    printf("|*-----------------------UDP----------------------*|\n");
-    struct udphdr* udp_header;
-    udp_header = (struct udphdr*)(packet);
-    int udplen = UDP_HEADER_LEN;
-
-    printf("Header length:           %d bytes\n", udplen);
-    printf("Source Port:             %d\n", ntohs(udp_header->source));
-    printf("Destination Port:        %d\n", ntohs(udp_header->dest));
+    handle_ethernet(packet_data, hdr->len);
 }
 
 int handle_input(int argc, char** argv, char** filter) {
@@ -304,6 +212,9 @@ pcap_t* set_up_handle(int flags, char* interface) {
         pcap_perror(handle, "Error ");
         return NULL;
     }
+
+    if(flags & F_FLAG)
+        pcap_set_immediate_mode(handle, 1);
 
     //setting length
     pcap_set_snaplen(handle, 65535);
