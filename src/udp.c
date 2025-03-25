@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "../Includes/cus_udp.h"
-
+#include "../Includes/cus_dns.h"
 
 void handle_udp(const u_char* packet, int msg_len) {
     printf("|*-----------------------UDP----------------------*|\n");
@@ -14,4 +14,8 @@ void handle_udp(const u_char* packet, int msg_len) {
     printf("Header length:           %d bytes\n", udplen);
     printf("Source Port:             %d\n", srcport);
     printf("Destination Port:        %d\n", dstport);
+
+    if(srcport == 53 || dstport == 53) {
+        handle_dns(packet + udplen, msg_len - udplen);
+    }
 }
