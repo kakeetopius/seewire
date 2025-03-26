@@ -20,7 +20,11 @@ struct dns_header {
 
 void handle_dns(const u_char* packet, int msg_len);
 
-char* print_name(const u_char* start, const u_char* end, const u_char* name_ptr);
+void print_qtype(int type);
+
+void print_qclass(int qclass);
+
+const u_char* print_name(const u_char* start, const u_char* end, const u_char* name_ptr);
 
 void handle_response(const u_char* message, int msg_len, struct dns_header* dns_hdr);
 
