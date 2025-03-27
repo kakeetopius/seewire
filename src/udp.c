@@ -1,6 +1,8 @@
 #include <stdio.h>
-#include "../Includes/cus_udp.h"
-#include "../Includes/cus_dns.h"
+#include <netinet/udp.h>
+#include <arpa/inet.h>
+#include "../Includes/c_udp.h"
+#include "../Includes/c_dns.h"
 
 void handle_udp(const u_char* packet, int msg_len) {
     printf("|*-----------------------UDP----------------------*|\n");

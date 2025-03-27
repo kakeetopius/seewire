@@ -1,9 +1,10 @@
-#ifndef CUS_ARP_H
-#define CUS_ARP_H
+#ifndef C_ARP_H
+#define C_ARP_H
 
-
-#include <net/ethernet.h>
+/*For ether_addr type*/
 #include <netinet/ether.h>
+
+/*For in_addr type*/
 #include <arpa/inet.h>
 
 #define ARP_HEADER_LEN (sizeof(struct arphdr))

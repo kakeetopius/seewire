@@ -1,5 +1,7 @@
 #include <stdio.h>
-#include "../Includes/cus_tcp.h"
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include "../Includes/c_tcp.h"
 
 
 void handle_tcp(const u_char* packet, int msg_len) {

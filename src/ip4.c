@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include "../Includes/cus_ip4.h"
-#include "../Includes/cus_tcp.h"
-#include "../Includes/cus_udp.h"
+#include <arpa/inet.h>
+#include <netinet/ip.h>
+#include "../Includes/c_ip4.h"
+#include "../Includes/c_tcp.h"
+#include "../Includes/c_udp.h"
 
 
 void handle_ip4(const u_char* packet, int msg_len) {

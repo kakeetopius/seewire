@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include "../Includes/cus_ip4.h"
-#include "../Includes/cus_arp.h"
-#include "../Includes/cus_ether.h"
+#include <netinet/ether.h>
+#include <net/ethernet.h>
+#include "../Includes/c_ip4.h"
+#include "../Includes/c_arp.h"
+#include "../Includes/c_ether.h"
 
 
 void handle_ethernet(const u_char* packet, int msg_len) {

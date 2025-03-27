@@ -14,8 +14,11 @@ typedef struct list {
     struct node* firstNode;
     struct node* lastNode;
     struct list* self;
-    void* value; // pointer to the value requested to return.
+    void* value; /*pointer to the value requested to be returned. Updated by a call to getAt()*/
+
     /*==========Methods================*/
+    /*----All these methods have the same working as their corresponding
+    ------functions described below------------------------------------------------*/
     int (*destroyList)(struct list* list);
     int (*append)(struct list* list, char* data, enum valueType);
     int (*insertAt)(struct list* list, char* data, int position, enum valueType);
@@ -33,23 +36,23 @@ typedef struct list {
 List createList();
 
 
-/*appends item  in string literal data to the list as datatype type*/
+/*appends item  in string paramter 'data' to the list as datatype type*/
 /*Returns 0 on success and -1 on failure*/
 int listAppend(List lst, char* data, enum valueType type);
 
 
-/*inserts item in string literal data to the list at position indicated as datatype type*/
+/*inserts item in string parameter 'data' to the list at position indicated as datatype type*/
 /*Returns 0 on success and -1 on failure*/
 int listInsertAt(List lst, char* data, int position, enum valueType type);
 
 
-/*Returns the type of item (STRING, CHARACTER, INTEGER OR FLOAT)* and -1 on failure*/
+/*Returns the type of item got (STRING, CHARACTER, INTEGER OR FLOAT)* and -1 on failure*/
 /*Every call to this function updates the value element of the list struct with 
 a pointer to the value at the position given.*/
 int listGetAt(List lst, int position);
 
 
-/*removes the item in string literal data and with data type type*/
+/*removes the item in string parameter 'data' and with data type type*/
 /*Returns 0 on success and -1 if item is not found*/
 int listRemoveItem(List lst, char* data, enum valueType type);
 
@@ -58,11 +61,11 @@ int listRemoveItem(List lst, char* data, enum valueType type);
 /*Return 0 on success and -1 on failure*/
 int listRemoveAt(List lst, int position);
 
-/*Print to standard output the items in the list*/
+/*Prints to standard output the items in the list*/
 void printList(List lst);
 
 
-/*Clear all the items in the list*/
+/*Clears all the items in the list*/
 void clearList(List lst);
 
 

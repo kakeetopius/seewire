@@ -1,8 +1,7 @@
 #ifndef CUS_UDP_H
 #define CUS_UDP_H
 
-#include <netinet/udp.h>
-#include <arpa/inet.h>
+#include <sys/types.h>
 
 #define UDP_HEADER_LEN (sizeof(struct udphdr)) 
 

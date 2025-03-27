@@ -7,7 +7,7 @@
 
 
 #include "../Includes/main.h"
-#include "../Includes/cus_ether.h"
+#include "../Includes/c_ether.h"
 
 int status; /*For error checking*/
 char errbuff[PCAP_ERRBUF_SIZE]; /*For error message*/
