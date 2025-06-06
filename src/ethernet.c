@@ -11,9 +11,10 @@ void handle_ethernet(const u_char* packet, int msg_len) {
 
     //printing out hardware info
     u_int8_t* ptr; 
+    msg_len = msg_len - ETHER_HEADER_LEN;
 
     ether_hdr = (struct ether_header*) packet;
-   
+       
     int char_addr_len = ETHER_ADDR_LEN * 2 + 5 + 1; //each xcter plus 5 colons plus one null terminator 
     char src[char_addr_len];
     char dst[char_addr_len];
@@ -26,12 +27,17 @@ void handle_ethernet(const u_char* packet, int msg_len) {
     printf("|*----------------------ETHER----------------------*|\n");
     printf("Source MAC:              %s\n", src);
     printf("Destination MAC:         %s\n", dst);
-
+    
+    if (msg_len <= 0) {
+        printf("\n");
+        return;
+    }
+    
     if (ntohs(ether_hdr->ether_type) == ETHERTYPE_IP) {
-        handle_ip4(packet + ETHER_HEADER_LEN, msg_len - ETHER_HEADER_LEN);
+        handle_ip4(packet + ETHER_HEADER_LEN, msg_len);
     }
     else if (ntohs(ether_hdr->ether_type) == ETHERTYPE_ARP) {
-        handle_arp(packet + ETHER_HEADER_LEN, msg_len - ETHER_HEADER_LEN);
+        handle_arp(packet + ETHER_HEADER_LEN, msg_len);
     }
     else {
         printf("Captured unsupported packet\n");

@@ -103,11 +103,20 @@ void signal_handler(int signum, siginfo_t* info, void* context) {
 
 void callback(u_char *user, const struct pcap_pkthdr* hdr, const u_char *packet_data) {
     ++packet_count;
+    
+    
+    if (hdr->len < 50) {
+        return;
+    }
+    else if (hdr->len > 1515) {
+        return;
+    }
+
     printf("+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+**+*+*+*+*+*\n");
     printf("Captured packet\n");
     printf("Total Packet Length:     %d\n", hdr->len);
     printf("Packet Count:            %llu\n", packet_count);
-
+    
     handle_ethernet(packet_data, hdr->len);
 }
 

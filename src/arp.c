@@ -33,6 +33,7 @@ void handle_arp_request(const u_char* packet, int msg_len) {
     printf("Who is:                  %s\n", dst_ip);
     printf("Says:                    %s\n", src_ip);
     printf("Tell:                    %s\n", src_mac);
+    printf("\n");
 }
 
 
@@ -54,4 +55,5 @@ void handle_arp_reply(const u_char* packet, int msg_len) {
     char* dst_mac = ether_ntoa(&(arp_data->dmac));
     printf("Destination MAC:         %s\n", dst_mac);
     printf("Destination IP:          %s\n", dst_ip);
+    printf("\n");
 }

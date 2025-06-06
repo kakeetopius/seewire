@@ -80,6 +80,7 @@ void handle_query(const u_char* message, int msg_len, struct dns_header* dns_hdr
             print_qclass(Qclass);
         }
     }
+    printf("\n");
 }
 
 void handle_response(const u_char* message, int msg_len, struct dns_header* dns_hdr) {
@@ -158,6 +159,7 @@ void handle_response(const u_char* message, int msg_len, struct dns_header* dns_
 
         rp_end = rp_end + 10 + dlen;     // correcting rp_end to point to next response
     }
+    printf("\n");
 }
 
 void handle_rdata(const u_char* data, enum query_types type, int len, const u_char* start, const u_char* end) {

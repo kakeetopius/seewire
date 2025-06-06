@@ -11,6 +11,7 @@ void handle_ip4(const u_char* packet, int msg_len) {
 
     ip_header = (struct ip*)(packet);
     int iplen = IP_HEADER_LEN(ip_header);
+    msg_len = msg_len - iplen;
 
     printf("|*----------------------IPv4----------------------*|\n");
     if (ip_header->ip_v != IPVERSION) {
@@ -24,12 +25,17 @@ void handle_ip4(const u_char* packet, int msg_len) {
     printf("Source IP:               %s\n", srcip);
     char* dstip = inet_ntoa(ip_header->ip_dst);
     printf("Destination IP:          %s\n", dstip);
+    
+    if (msg_len <= 0) {
+        printf("\n");
+        return;
+    }
 
     if (ip_header->ip_p == IPPROTO_TCP){
-        handle_tcp(packet + iplen, msg_len - iplen);
+        handle_tcp(packet + iplen, msg_len);
     }
     else if (ip_header->ip_p == IPPROTO_UDP) {
-        handle_udp(packet + iplen, msg_len - iplen);
+        handle_udp(packet + iplen, msg_len);
     }
     else {
         printf("Unsupported protocol\n");
