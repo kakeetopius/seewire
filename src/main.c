@@ -5,50 +5,47 @@
 #include <sys/types.h>
 #include <time.h>
 
-
-#include "../Includes/main.h"
 #include "../Includes/c_ether.h"
+#include "../Includes/main.h"
 
-int status; /*For error checking*/
-char errbuff[PCAP_ERRBUF_SIZE]; /*For error message*/
+int status;			 /*For error checking*/
+char errbuff[PCAP_ERRBUF_SIZE];	 /*For error message*/
 unsigned long long packet_count; /*For packet captured count*/
-time_t start, stop; /*For capture duration*/
+time_t start, stop;		 /*For capture duration*/
 
-int main(int argc, char** argv) {
-
-    char* filter = (char*)malloc(50 * sizeof(char)); /*For the filter entered.*/
+int main(int argc, char **argv) {
+    char *filter = (char *)malloc(50 * sizeof(char)); /*For the filter entered.*/
 
     if (!filter) {
-        printf("Malloc Error\n");
-        return -1;
+	printf("Malloc Error\n");
+	return -1;
     }
 
     int flags = handle_input(argc, argv, &filter);
     if (flags == -1) {
-        exit(-1);
-    }
-    else if (!(flags & F_FLAG)) {
-        free(filter);
+	exit(-1);
+    } else if (!(flags & F_FLAG)) {
+	free(filter);
     }
 
-    pcap_t* handle = set_up_handle(flags, argv[1]); //argv[1] is the interface to set up the handle
+    pcap_t *handle = set_up_handle(flags, argv[1]); // argv[1] is the interface to set up the handle
     if (handle == NULL) {
-        exit(-1);
+	exit(-1);
     }
 
     struct bpf_program bp_filter;
-    //setting filter
+    // setting filter
     if (flags & F_FLAG) {
-        if(set_up_bpf(handle, &bp_filter, filter) == -1){
-            free(filter);
-            exit(-1);
-        }
-        free(filter);
+	if (set_up_bpf(handle, &bp_filter, filter) == -1) {
+	    free(filter);
+	    exit(-1);
+	}
+	free(filter);
     }
 
     setup_signal_handler();
 
-    //capture packets in an infinite loop.
+    // capture packets in an infinite loop.
     time(&start); // starting time
     pcap_loop(handle, -1, callback, NULL);
     pcap_freecode(&bp_filter);
@@ -58,24 +55,23 @@ int main(int argc, char** argv) {
 
 int setup_signal_handler() {
     struct sigaction new_action;
-    
+
     /*Setting up new signal action*/
     memset(&new_action, '\0', sizeof(new_action));
     new_action.sa_sigaction = signal_handler;
     sigemptyset(&new_action.sa_mask);
     new_action.sa_flags = SA_SIGINFO;
 
-    if(sigaction(SIGINT, &new_action, NULL) < 0) {
-        perror("SIGACTION");
-        return -1;
-    }
-    else 
-        return 0;
+    if (sigaction(SIGINT, &new_action, NULL) < 0) {
+	perror("SIGACTION");
+	return -1;
+    } else
+	return 0;
 }
 
-void signal_handler(int signum, siginfo_t* info, void* context) {
-    if(info->si_signo != SIGINT) {
-       return;
+void signal_handler(int signum, siginfo_t *info, void *context) {
+    if (info->si_signo != SIGINT) {
+	return;
     }
 
     //---Stopping time----
@@ -84,7 +80,7 @@ void signal_handler(int signum, siginfo_t* info, void* context) {
     //----Buffers for data and time strings
     char start_buff[30] = "\0";
     char stop_buff[30] = "\0";
-  
+
     //------Getting info data time info as string-------
     strftime(start_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(&start));
     strftime(stop_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(&stop));
@@ -101,169 +97,164 @@ void signal_handler(int signum, siginfo_t* info, void* context) {
     exit(0);
 }
 
-void callback(u_char *user, const struct pcap_pkthdr* hdr, const u_char *packet_data) {
+void callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data) {
     ++packet_count;
-    
-    
+
     if (hdr->len < 50) {
-        return;
-    }
-    else if (hdr->len > 1515) {
-        return;
+	return;
+    } else if (hdr->len > 1515) {
+	return;
     }
 
     printf("+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+**+*+*+*+*+*\n");
     printf("Captured packet\n");
     printf("Total Packet Length:     %d\n", hdr->len);
     printf("Packet Count:            %llu\n", packet_count);
-    
+
     handle_ethernet(packet_data, hdr->len);
 }
 
-int handle_input(int argc, char** argv, char** filter) {
-    char* error_message = "Usage: ./capture <interface> -a to capture all packets.\nUsage: ./capture <interface> -f <filter> to filter the packets\nUse flag -p to set promiscous mode\n";
+int handle_input(int argc, char **argv, char **filter) {
+    char *error_message = "Usage: ./capture <interface> -a to capture all packets.\nUsage: ./capture <interface> -f <filter> to filter the packets\nUse flag -p to set promiscous mode\n";
 
     int flags = 0;
 
     if (argc < 3) {
-        printf("%s", error_message);
-        return -1;
+	printf("%s", error_message);
+	return -1;
     }
 
     //===========================handling inputed filters=================================
-    char flag;                // for flag arguments
-    int f_pos;               // for position of the -f
-    int num_args = 2;       //total arguments without filter words; 2 for the program name and the interface.
+    char flag;	      // for flag arguments
+    int f_pos;	      // for position of the -f
+    int num_args = 2; // total arguments without filter words; 2 for the program name and the interface.
 
     //---Checking for flags---
     for (int i = 2; i < argc; i++) {
-        if (*(argv[i]) == '-') {
-            if(strlen(argv[i]) != 2) {
-                printf("Unknown Option: %s\n", argv[i]);
-                return -1;
-            }
-            flag = *(argv[i] + 1);
-            switch(flag) {
-                case 'p':
-                    flags = flags | P_FLAG;
-                    num_args++;
-                    break;
-                case 'a':
-                    flags = flags | A_FLAG;
-                    num_args++;
-                    break;
-                case 'f':
-                    flags = flags | F_FLAG;
-                    f_pos = i; // taking note of position of the -f argument.
-                    num_args++;
-                    break;
-                default:
-                    printf("Unknown argument: %c\n", flag);
-                    return -1; 
-            }
-        }
+	if (*(argv[i]) == '-') {
+	    if (strlen(argv[i]) != 2) {
+		printf("Unknown Option: %s\n", argv[i]);
+		return -1;
+	    }
+	    flag = *(argv[i] + 1);
+	    switch (flag) {
+	    case 'p':
+		flags = flags | P_FLAG;
+		num_args++;
+		break;
+	    case 'a':
+		flags = flags | A_FLAG;
+		num_args++;
+		break;
+	    case 'f':
+		flags = flags | F_FLAG;
+		f_pos = i; // taking note of position of the -f argument.
+		num_args++;
+		break;
+	    default:
+		printf("Unknown argument: %c\n", flag);
+		return -1;
+	    }
+	}
     }
 
     // Checking options set.
     if ((flags & F_FLAG) && (flags & A_FLAG)) {
-        printf("Cannot set both -a and -f\n");
-        printf("%s\n", error_message);
-        return -1;
-    }
-    else if (flags & A_FLAG) {
-        printf("Option: Capture all packets\n");
-    }
-    else if (flags & F_FLAG) {
-        int num_filter_words = argc - num_args;     //minus the rest of arguments
+	printf("Cannot set both -a and -f\n");
+	printf("%s\n", error_message);
+	return -1;
+    } else if (flags & A_FLAG) {
+	printf("Option: Capture all packets\n");
+    } else if (flags & F_FLAG) {
+	int num_filter_words = argc - num_args; // minus the rest of arguments
 
-        if (num_filter_words == 0) {
-            printf("No filters entered\n");
-            printf("%s", error_message);
-            return -1;
-        }   
-       
-        int filter_length = 0;
-        //----Determing the length of the filter entered.-------
-        //----i for checking argv; j for controlling the loop.----
-        for (int i = f_pos + 1, j = 0; j < num_filter_words; i++,j++) {
-           filter_length = filter_length + strlen(argv[i]) + 1;   // plus one of space between and null terminator for last
-        }   
-        if (filter_length > 50) {
-            printf("Filter too long\n");
-            return -1;
-        }
-        
-        //------Appending the filter to the filter buffer with space between arguments
-        for (int i = f_pos + 1, j = 0; j < num_filter_words; i++,j++) {
-            strcat(*filter, argv[i]);
-            strcat(*filter, " ");
-        }
-        
-        printf("Filter entered is: %s\n", *filter);
-    }
-    else {
-        printf("%s", error_message);
-        return -1;
+	if (num_filter_words == 0) {
+	    printf("No filters entered\n");
+	    printf("%s", error_message);
+	    return -1;
+	}
+
+	int filter_length = 0;
+	//----Determing the length of the filter entered.-------
+	//----i for checking argv; j for controlling the loop.----
+	for (int i = f_pos + 1, j = 0; j < num_filter_words; i++, j++) {
+	    filter_length = filter_length + strlen(argv[i]) + 1; // plus one of space between and null terminator for last
+	}
+	if (filter_length > 50) {
+	    printf("Filter too long\n");
+	    return -1;
+	}
+
+	//------Appending the filter to the filter buffer with space between arguments
+	for (int i = f_pos + 1, j = 0; j < num_filter_words; i++, j++) {
+	    strcat(*filter, argv[i]);
+	    strcat(*filter, " ");
+	}
+
+	printf("Filter entered is: %s\n", *filter);
+    } else {
+	printf("%s", error_message);
+	return -1;
     }
     return flags;
 }
 
-pcap_t* set_up_handle(int flags, char* interface) {
+pcap_t *set_up_handle(int flags, char *interface) {
     status = pcap_init(0, errbuff);
-    pcap_t* handle = NULL;
+    pcap_t *handle = NULL;
     if (status != 0) {
-        printf("Error: %s\n", pcap_strerror(status));
-        return NULL;
+	printf("Error: %s\n", pcap_strerror(status));
+	return NULL;
     }
 
     handle = pcap_create(interface, errbuff);
     if (handle == NULL) {
-        pcap_perror(handle, "Error ");
-        return NULL;
+	pcap_perror(handle, "Error ");
+	return NULL;
     }
 
-    if(flags & F_FLAG)
-        pcap_set_immediate_mode(handle, 1);
+    if (flags & F_FLAG)
+	pcap_set_immediate_mode(handle, 1);
 
-    //setting length
+    // setting length
     pcap_set_snaplen(handle, 65535);
-    
-    //setting promiscous mode.
+
+    // setting promiscous mode.
     if (flags & P_FLAG) {
-        status = pcap_set_promisc(handle, 1);
-        if (status != 0) {
-            pcap_perror(handle, "Error set promiscous mode ");
-        }
+	status = pcap_set_promisc(handle, 1);
+	if (status != 0) {
+	    pcap_perror(handle, "Error set promiscous mode ");
+	}
     }
-    
+
     status = pcap_activate(handle);
     if (status != 0) {
-        pcap_perror(handle, "Error Activating ");
-        return NULL;
+	pcap_perror(handle, "Error Activating ");
+	return NULL;
     }
 
-    //setting direction
+    // setting direction
     status = pcap_setdirection(handle, PCAP_D_INOUT);
     if (status != 0) {
-        pcap_perror(handle, "Error Setting Direction ");
-        return NULL;
+	pcap_perror(handle, "Error Setting Direction ");
+	return NULL;
     }
 
     return handle;
 }
 
-int set_up_bpf(pcap_t* handle, struct bpf_program* bp_filter, char* filter) {
-    status = pcap_compile(handle, bp_filter, filter, 1, PCAP_NETMASK_UNKNOWN);  
+int set_up_bpf(pcap_t *handle, struct bpf_program *bp_filter, char *filter) {
+    status = pcap_compile(handle, bp_filter, filter, 1, PCAP_NETMASK_UNKNOWN);
     if (status != 0) {
-        pcap_perror(handle, "Error BPF ");
-        return -1;
+	pcap_perror(handle, "Error BPF ");
+	return -1;
     }
 
     status = pcap_setfilter(handle, bp_filter);
 
     if (status != 0) {
-        pcap_perror(handle, "Error Activating filter \n");
-        return -1;
+	pcap_perror(handle, "Error Activating filter \n");
+	return -1;
     }
 
     printf("Filtering packets.....\n");

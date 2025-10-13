@@ -25,8 +25,9 @@ void handle_udp(const u_char* packet, int msg_len) {
         printf("\n");
         return;
     }
-
+    
     if(srcport == 53 || dstport == 53) {
         handle_dns(packet + udplen, msg_len);
     }
 }
+
