@@ -1,4 +1,4 @@
-# 🧠 SeeWire
+# 👁️SeeWire
 
 > **SeeWire** — A lightweight, C-based packet sniffer that lets you *see what’s really on the wire.*
 
@@ -14,14 +14,14 @@
 
 ---
 
-## 📡 Overview
+## Overview
 
 **SeeWire** is a simple yet powerful **packet sniffer** written entirely in **C**.  
 It captures and inspects raw network packets in real time, giving you a clear view of what’s happening on your network interface — just like `tcpdump`, but lighter and easier to understand for students and developers learning low-level networking.
 
 ---
 
-## 🚀 Features
+## Features
 
 - 🔍 Capture live packets from a network interface  
 - 🧩 Decode Ethernet, IP, TCP, UDP, and ICMP headers  
@@ -37,11 +37,6 @@ It captures and inspects raw network packets in real time, giving you a clear vi
 - A C compiler (`gcc` or `clang`)
 - Root privileges (for raw socket access)
 - Linux or BSD-based OS
-
-### Compile
-```bash
-gcc -o seewire seewire.c
-```
 
 ### Run
 ```bash
@@ -90,7 +85,7 @@ SeeWire is designed as a **learning tool** for:
 
 ---
 
-## 🧑‍💻 Example Output
+## Example Output
 
 ```
 [+] Capturing on eth0...
@@ -113,14 +108,8 @@ TCP: src port 443 → dst port 56732 | Flags: SYN, ACK
 
 ---
 
-## 🧾 License
-
-This project is open-source and licensed under the **MIT License** — feel free to modify and expand it.
-
----
-
 ## ✨ Author
 
 **Pius Kakeeto**  
-*Network enthusiast & systems programmer in training*  
+*Network and systems enthusiast, programmer, and security engineer in training*
 > “Sniff. Decode. Learn.”
