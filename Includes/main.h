@@ -33,5 +33,6 @@ void signal_handler(int signum, siginfo_t* info, void* context);
 int setup_signal_handler();
 int handle_input(int argc, char **argv, struct userInput* input);
 int set_up_pcap_handle(pcap_t **handle, struct userInput *user_input);
-void print_capture_stats();
+void savefile_callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data);
+void print_capture_stats(time_t *start, time_t *stop);
 #endif
