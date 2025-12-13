@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "../Includes/c_ether.h"
 #include "../Includes/main.h"
@@ -50,24 +52,11 @@ int main(int argc, char **argv) {
 	}
 	printf("Saving to file: %s\n", input.output_file);
 	time(&start); // capture start time.
-	while (!stopped) {
-	    status = pcap_dispatch(handle, -1, savefile_callback, (u_char *)savefile);
-	    if (status < 0) {
-		break;
-	    }
-	}
+	status = capture_packets(&handle, savefile_callback, (u_char *)savefile, &input);
+	pcap_dump_close(savefile);
     } else {
 	time(&start); // capture start time.
-	while (!stopped) {
-	    status = pcap_dispatch(handle, -1, callback, (u_char *)handle);
-	    if (status < 0) {
-		break;
-	    }
-	    if (input.flags & INPUT_FLAG && status == 0) {
-		// if reading from pcap file and returned count is 0;
-		break;
-	    }
-	}
+	status = capture_packets(&handle, callback, (u_char *)handle, &input);
     }
 
     time(&stop);
@@ -82,6 +71,70 @@ int main(int argc, char **argv) {
     return 0;
 }
 
+int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct userInput *user_input) {
+    int fd = pcap_get_selectable_fd(*handle);
+    fd_set fds;
+    struct timeval tv;
+    int status;
+    char errbuff[PCAP_ERRBUF_SIZE];
+
+    if (fd != -1) {
+	// if device supports select()
+	while (!stopped) {
+	    FD_ZERO(&fds);
+	    FD_SET(fd, &fds);
+
+	    tv.tv_sec = 0;
+	    tv.tv_usec = 100; // 100ms
+
+	    int ret = select(fd + 1, &fds, NULL, NULL, &tv);
+	    if (ret < 0) {
+		if (errno == EINTR && stopped) {
+		    //if signal sent.
+		    printf("\nInterrupted by user......\n");
+		}
+		else {
+		    perror("select");
+		    return 1;
+		}
+	    } else if (ret > 0) {
+		// The kernel packet buffer is guaranteed to have packets so pcap_dispatch() will
+		// not block waiting for packets.
+		// -1 for cnt parameter such that it processes all available packets and return.
+		status = pcap_dispatch(*handle, -1, callback, user);
+		if (status < 0) {
+		    // error from pcap.
+		    return status;
+		}
+		if (status == 0 && user_input->flags & INPUT_FLAG) {
+		    // EOF reached when reading from a pcap file.
+		    return 0;
+		}
+	    }
+	    // else if ret == 0 - timeout occured so loop again.
+	}
+    } else {
+	// Device not selectable: fallback to non-blocking + polling
+	if (pcap_setnonblock(*handle, 1, errbuff) < 0) {
+	    fprintf(stderr, "Error setting non-blocking mode: %s\n", errbuff);
+	    return 1;
+	}
+
+	while (!stopped) {
+	    status = pcap_dispatch(*handle, -1, callback, user);
+	    if (status < 0) {
+		return status;
+	    }
+	    if (status == 0 && user_input->flags & INPUT_FLAG) {
+		// EOF reached.
+		return 0;
+	    }
+	    usleep(1000); // avoid busy loop
+	}
+    }
+
+    return 0;
+}
 /*
  * Function callback is called for every packet sent to the process.
  */
@@ -155,7 +208,6 @@ void print_capture_stats(time_t *start, time_t *stop) {
     double capture_time = difftime(*stop, *start);
 
     printf("\n\n*************************************\n");
-    printf("Stopped Packet Capture......\n");
     printf("Total Packets Captured: %llu\n", packet_count);
     printf("Total Capturing Time: %.2f seconds\n", capture_time);
     printf("Start Time: %s\n", start_buff);
@@ -226,7 +278,7 @@ int set_up_pcap_handle(pcap_t **handle, struct userInput *user_input) {
 	    pcap_freealldevs(all_devs);
 	    return -1;
 	}
-	//checking to see if it is connected.
+	// checking to see if it is connected.
 	if (!(iface_to_use->flags & PCAP_IF_RUNNING)) {
 	    printf("Interface %s seems not to be connected to any network\n", iface_to_use->name);
 	    pcap_freealldevs(all_devs);
@@ -251,7 +303,7 @@ int set_up_pcap_handle(pcap_t **handle, struct userInput *user_input) {
 
     if (user_input->flags & INPUT_FLAG) {
 	if (!user_input->input_file) {
-	    //if input file is null for some reason
+	    // if input file is null for some reason
 	    pcap_freealldevs(all_devs);
 	    return -1;
 	}

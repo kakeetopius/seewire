@@ -35,4 +35,5 @@ int handle_input(int argc, char **argv, struct userInput* input);
 int set_up_pcap_handle(pcap_t **handle, struct userInput *user_input);
 void savefile_callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data);
 void print_capture_stats(time_t *start, time_t *stop);
+int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct userInput *user_input);
 #endif
