@@ -1,6 +1,8 @@
+#include "../Includes/datalink.h"
 #include "../Includes/c_arp.h"
 #include "../Includes/c_ip4.h"
-#include "../Includes/datalink.h"
+#include "../Includes/output_printer.h"
+
 #include <net/ethernet.h>
 #include <netinet/ether.h>
 #include <stdio.h>
@@ -23,9 +25,9 @@ void handle_ethernet(const u_char *packet, int msg_len) {
     ptr = ether_hdr->ether_dhost;
     snprintf(dst, char_addr_len, "%02x:%02x:%02x:%02x:%02x:%02x", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
 
-    printf("|*----------------------ETHER----------------------*|\n");
-    printf("Source MAC:              %s\n", src);
-    printf("Destination MAC:         %s\n", dst);
+    print_protocol_header("ETHERNET");
+    print_field("Source MAC:", src, STRING);
+    print_field("Destination MAC:", dst, STRING);
 
     if (msg_len <= 0) {
 	printf("\n");
@@ -43,29 +45,36 @@ void handle_ethernet(const u_char *packet, int msg_len) {
     }
 }
 
-//Function handle_linuxsll is used to handle different formats that be encountered when capturing
-//packets on virtual interfaces like loopback or when "any" interface option is used.
-void handle_linuxsll(const u_char* packet, int pktlen) {
-    struct sll_header* sll_hdr;
+// Function handle_linuxsll is used to handle different formats that be encountered when capturing
+// packets on virtual interfaces like loopback or when "any" interface option is used.
+void handle_linuxsll(const u_char *packet, int pktlen) {
+    struct sll_header *sll_hdr;
     sll_hdr = (struct sll_header *)packet;
-    
-    int upper_layer_proto = ntohs(sll_hdr->protocol_type);
+
     int hdr_len = datalink_header_len(DLT_LINUX_SLL);
     pktlen = pktlen - hdr_len;
-    int link_layer_addr_type = ntohs(sll_hdr->hw_addr_type);
 
-    printf("|*---------------LINUX COOKED PACKET------------------*|\n");
-    printf("Packet type: %d\n", ntohs(sll_hdr->packet_type));
-    printf("Link Layer Adress type: %d\n", link_layer_addr_type);
-    printf("Link layer address Length: %d\n", ntohs(sll_hdr->hw_addr_len));
+    int upper_layer_proto = ntohs(sll_hdr->protocol_type);
+    int link_layer_addr_type = ntohs(sll_hdr->hw_addr_type);
+    int packet_type = ntohs(sll_hdr->packet_type);
+    int hw_addr_len = ntohs(sll_hdr->hw_addr_len);
+
+    print_protocol_header("LINUX COOKED PACKET");
+    print_field("Packet type:", &packet_type, INTEGER);
+    print_field("L2 Adress Type:", &link_layer_addr_type, INTEGER);
+    print_field("L2 Address Len:", &hw_addr_len, INTEGER);
 
     if (link_layer_addr_type == ARPHRD_ETHER) {
-	uint8_t* ptr = sll_hdr->hw_addr;	
-	printf("Source MAC: ""%02x:%02x:%02x:%02x:%02x:%02x\n", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+	uint8_t *ptr = sll_hdr->hw_addr;
+	char src[24];
+	snprintf(src, 24, "%02x:%02x:%02x:%02x:%02x:%02x", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+	print_field("Source MAC:", src, STRING);
     }
     if (link_layer_addr_type == ARPHRD_LOOPBACK) {
-	uint8_t* ptr = sll_hdr->hw_addr;	
-	printf("Source MAC: ""%02x:%02x:%02x:%02x:%02x:%02x (loopback)\n", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+	uint8_t *ptr = sll_hdr->hw_addr;
+	char src[30];
+	snprintf(src, 30, "%02x:%02x:%02x:%02x:%02x:%02x(loopback)", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+	print_field("Source MAC:", src, STRING);
     }
     if (upper_layer_proto == ETHERTYPE_IP) {
 	handle_ip4(packet + hdr_len, pktlen);
@@ -75,11 +84,10 @@ void handle_linuxsll(const u_char* packet, int pktlen) {
 	printf("Unsupported packet of type DLT_LINUX_SLL: %02x\n", upper_layer_proto);
 	return;
     }
-
 }
 
-void handle_linuxsll2(const u_char* packet, int pktlen) {
-    //upper layer protocol at offset 0 (upto 2).
+void handle_linuxsll2(const u_char *packet, int pktlen) {
+    // upper layer protocol at offset 0 (upto 2).
     uint16_t upper_layer_proto = ntohs(*(uint16_t *)packet);
 
     int hdr_len = datalink_header_len(DLT_LINUX_SLL2);
@@ -95,8 +103,8 @@ void handle_linuxsll2(const u_char* packet, int pktlen) {
     }
 }
 
-void handle_null_and_loop(const u_char* packet, int pktlen) {
-    //upper layer protocol at offset 0 (upto 2). both are similar.
+void handle_null_and_loop(const u_char *packet, int pktlen) {
+    // upper layer protocol at offset 0 (upto 2). both are similar.
     uint16_t upper_layer_proto = ntohs(*(uint16_t *)packet);
 
     int hdr_len = datalink_header_len(DLT_LOOP);
@@ -110,24 +118,24 @@ void handle_null_and_loop(const u_char* packet, int pktlen) {
     }
 }
 
-void handle_datalink(const u_char* packet, int dlType, int packet_len) {
-    switch(dlType) {
-	case DLT_EN10MB:
-	    handle_ethernet(packet, packet_len);
-	    break;
-	case DLT_LINUX_SLL:
-	    handle_linuxsll(packet, packet_len);
-	    break;
-	case DLT_LINUX_SLL2:
-	    handle_linuxsll2(packet, packet_len);
-	    break;
-	case DLT_NULL:
-	case DLT_LOOP:
-	    handle_null_and_loop(packet, packet_len);
-	    break;
-	default:
-	    printf("Unsupported datalink type: %d\n", dlType);
-	    return;
+void handle_datalink(const u_char *packet, int dlType, int packet_len) {
+    switch (dlType) {
+    case DLT_EN10MB:
+	handle_ethernet(packet, packet_len);
+	break;
+    case DLT_LINUX_SLL:
+	handle_linuxsll(packet, packet_len);
+	break;
+    case DLT_LINUX_SLL2:
+	handle_linuxsll2(packet, packet_len);
+	break;
+    case DLT_NULL:
+    case DLT_LOOP:
+	handle_null_and_loop(packet, packet_len);
+	break;
+    default:
+	printf("Unsupported datalink type: %d\n", dlType);
+	return;
     }
 }
 
@@ -146,4 +154,3 @@ int datalink_header_len(int dlt) {
 	return -1;
     }
 }
-

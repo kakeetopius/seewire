@@ -1,45 +1,30 @@
 #include <stdio.h>
 #include <string.h>
 
-void print_banner();
-void print_intro();
-void print_packet_intro();
+#include "../Includes/messages.h"
+#include "../Includes/output_printer.h"
 
-int main(void) {
-    print_banner();
-    print_intro();
-    print_packet_intro();
-    return 0;
-}
 
 void print_banner() {
+    printf(BANNER);
 }
 
-void print_intro() {
-    printf("[+] Capturing on eth0........................\n");
-    printf("[+] Filter Applied: None\n\n");
-    return;
+void print_protocol_header(char* protocol_name) {
+    int name_len = strlen(protocol_name);
+
+    char* dash = "-------------------------------------------------------------|";
+    int len_to_print = 60;
+    int dash_num = (len_to_print - 4 - name_len) / 2;
+    int odd = 0;
+    if (name_len % 2) {
+	odd = 1;
+    }
+    printf("%.*s[ %s ]%.*s\n", dash_num, dash, protocol_name, odd ? dash_num + 1 : dash_num, dash);
 }
 
-void print_packet_intro() {
-    printf("──────────────────────[ Packet #605 ]────────────────────────────\n");
-    printf("Timestamp: 2025-10-26 21:18:31.224183\n");
-    printf("Length: 98 bytes\n\n");
-
-    printf("[Ethernet]\n");
-    printf("%-10s %-20s\n", "  src:", "00:aa:bb:cf:43:3e");
-    printf("%-10s %-20s\n", "  dst:", "00:aa:5b:bf:53:34");
-    printf("%-10s %-20s\n", " Ether Type:", "IP (0XC0)");
-
-    printf("[IP]\n");
-    printf("  src: 192.168.22.100\n");
-    printf("  dst: 192.168.22.103\n");
-    printf("  Protocol: TCP\n");
-
-
-    printf("[TCP]\n");
-    printf("  src port: 443\n");
-    printf("  dst port: 56783\n");
-    printf("  flags: SYN, ACK");
+void print_field(char* name, void* value, enum valueType value_type) {
+    if (value_type == STRING)
+	printf("%*s%*s%s\n", -20, name, 10, " ", (char*)value);
+    else if (value_type == INTEGER) 
+	printf("%*s%*s%u\n", -20, name, 10, " ", *(unsigned int*)value);
 }
- 

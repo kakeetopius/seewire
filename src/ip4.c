@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
+
 #include "../Includes/c_ip4.h"
 #include "../Includes/c_tcp.h"
 #include "../Includes/c_udp.h"
+#include "../Includes/output_printer.h"
 
 
 void handle_ip4(const u_char* packet, int msg_len) {
@@ -12,8 +14,8 @@ void handle_ip4(const u_char* packet, int msg_len) {
     ip_header = (struct ip*)(packet);
     int iplen = IP_HEADER_LEN(ip_header);
     msg_len = msg_len - iplen;
-
-    printf("|*----------------------IPv4----------------------*|\n");
+    
+    print_protocol_header("IPv4"); 
     if (ip_header->ip_v != IPVERSION) {
         return;
     }
@@ -21,11 +23,11 @@ void handle_ip4(const u_char* packet, int msg_len) {
     //extracting the info
     char* srcip = inet_ntoa(ip_header->ip_src);
 
-    printf("Header Length:           %d bytes\n", iplen);
-    printf("Source IP:               %s\n", srcip);
+    print_field("Header Length:", &iplen, INTEGER);
+    print_field("Source IP:", srcip, STRING);
     char* dstip = inet_ntoa(ip_header->ip_dst);
-    printf("Destination IP:          %s\n", dstip);
-    
+    print_field("Destination IP:", dstip, STRING);
+
     if (msg_len <= 0) {
         printf("\n");
         return;

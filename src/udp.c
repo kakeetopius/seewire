@@ -3,9 +3,10 @@
 #include <arpa/inet.h>
 #include "../Includes/c_udp.h"
 #include "../Includes/c_dns.h"
+#include "../Includes/output_printer.h"
 
 void handle_udp(const u_char* packet, int msg_len) {
-    printf("|*-----------------------UDP----------------------*|\n");
+    print_protocol_header("UDP"); 
     struct udphdr* udp_header;
 
     udp_header = (struct udphdr*)(packet);
@@ -17,9 +18,9 @@ void handle_udp(const u_char* packet, int msg_len) {
     srcport =  ntohs(udp_header->source);
     dstport =  ntohs(udp_header->dest);
 
-    printf("Header length:           %d bytes\n", udplen);
-    printf("Source Port:             %d\n", srcport);
-    printf("Destination Port:        %d\n", dstport);
+    print_field("Header length:", &udplen, INTEGER);
+    print_field("Source Port:", &srcport, INTEGER);
+    print_field("Destination Port:", &dstport, INTEGER);
     
     if (msg_len <= 0) {
         printf("\n");
@@ -28,6 +29,9 @@ void handle_udp(const u_char* packet, int msg_len) {
     
     if(srcport == 53 || dstport == 53) {
         handle_dns(packet + udplen, msg_len);
+    }
+    else {
+	printf("\n");
     }
 }
 

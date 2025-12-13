@@ -8,6 +8,7 @@
 
 #include "../Includes/datalink.h"
 #include "../Includes/main.h"
+#include "../Includes/output_printer.h"
 #include "../Includes/messages.h"
 
 unsigned long long packet_count; /*For packet captured count*/
@@ -157,10 +158,10 @@ void callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_
 	return;
     }
 
-    printf("+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+*+**+*+*+*+*+*\n");
+    printf("─────────────────────────────────────────────────────────────────────────\n");
     printf("Captured packet\n");
-    printf("Total Packet Length:     %d\n", hdr->len);
-    printf("Packet Count:            %llu\n", packet_count);
+    print_field("Total Packet Length:", (void*)&hdr->len, INTEGER);
+    print_field("Packet Count:", &packet_count, INTEGER);
 
     handle_datalink(packet_data, ctx->dlType, hdr->len);
 }

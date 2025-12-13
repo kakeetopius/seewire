@@ -1,4 +1,5 @@
 #include "../Includes/c_dns.h"
+#include "../Includes/output_printer.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -9,8 +10,7 @@ void handle_dns(const u_char *packet, int msg_len) {
           return;
      }
 
-     printf("|*-----------------------DNS----------------------*|\n");
-
+    print_protocol_header("DNS");
      /*-----------Dns header-------------------*/
      struct dns_header *dns_hdr = (struct dns_header *)packet;
 
