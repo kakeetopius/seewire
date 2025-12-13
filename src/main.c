@@ -1,12 +1,12 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <errno.h>
 
-#include "../Includes/c_ether.h"
+#include "../Includes/datalink.h"
 #include "../Includes/main.h"
 #include "../Includes/messages.h"
 
@@ -42,6 +42,9 @@ int main(int argc, char **argv) {
 
     printf("%s\n", BANNER);
 
+    // will contain useful information for the callback function for packets captured.
+    struct callbackCtx ctx;
+
     // if at all saving to a file is required.
     if (input.flags & OUTPUT_FLAG) {
 	pcap_dumper_t *savefile = pcap_dump_open(handle, input.output_file);
@@ -52,11 +55,14 @@ int main(int argc, char **argv) {
 	}
 	printf("Saving to file: %s\n", input.output_file);
 	time(&start); // capture start time.
-	status = capture_packets(&handle, savefile_callback, (u_char *)savefile, &input);
+
+	ctx.savefile = savefile;
+	status = capture_packets(&handle, savefile_callback, &ctx, &input);
 	pcap_dump_close(savefile);
     } else {
+	// normal capturing without saving to file.
 	time(&start); // capture start time.
-	status = capture_packets(&handle, callback, (u_char *)handle, &input);
+	status = capture_packets(&handle, callback, &ctx, &input);
     }
 
     time(&stop);
@@ -71,13 +77,16 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct userInput *user_input) {
+int capture_packets(pcap_t **handle, pcap_handler callback, struct callbackCtx *ctx, struct userInput *user_input) {
     int fd = pcap_get_selectable_fd(*handle);
     fd_set fds;
     struct timeval tv;
     int status;
     char errbuff[PCAP_ERRBUF_SIZE];
 
+    // first determine which link layer type.
+    int linktype = pcap_datalink(*handle);
+    ctx->dlType = linktype;
     if (fd != -1) {
 	// if device supports select()
 	while (!stopped) {
@@ -90,10 +99,9 @@ int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct
 	    int ret = select(fd + 1, &fds, NULL, NULL, &tv);
 	    if (ret < 0) {
 		if (errno == EINTR && stopped) {
-		    //if signal sent.
+		    // if signal sent.
 		    printf("\nInterrupted by user......\n");
-		}
-		else {
+		} else {
 		    perror("select");
 		    return 1;
 		}
@@ -101,7 +109,7 @@ int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct
 		// The kernel packet buffer is guaranteed to have packets so pcap_dispatch() will
 		// not block waiting for packets.
 		// -1 for cnt parameter such that it processes all available packets and return.
-		status = pcap_dispatch(*handle, -1, callback, user);
+		status = pcap_dispatch(*handle, -1, callback, (u_char *)ctx);
 		if (status < 0) {
 		    // error from pcap.
 		    return status;
@@ -114,6 +122,7 @@ int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct
 	    // else if ret == 0 - timeout occured so loop again.
 	}
     } else {
+	printf("Does not support select()\n");
 	// Device not selectable: fallback to non-blocking + polling
 	if (pcap_setnonblock(*handle, 1, errbuff) < 0) {
 	    fprintf(stderr, "Error setting non-blocking mode: %s\n", errbuff);
@@ -121,7 +130,7 @@ int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct
 	}
 
 	while (!stopped) {
-	    status = pcap_dispatch(*handle, -1, callback, user);
+	    status = pcap_dispatch(*handle, -1, callback, (u_char *)ctx);
 	    if (status < 0) {
 		return status;
 	    }
@@ -140,6 +149,7 @@ int capture_packets(pcap_t **handle, pcap_handler callback, u_char *user, struct
  */
 void callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data) {
     ++packet_count;
+    struct callbackCtx *ctx = (struct callbackCtx *)user;
 
     if (hdr->len < 40) {
 	return;
@@ -152,7 +162,7 @@ void callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_
     printf("Total Packet Length:     %d\n", hdr->len);
     printf("Packet Count:            %llu\n", packet_count);
 
-    handle_ethernet(packet_data, hdr->len);
+    handle_datalink(packet_data, ctx->dlType, hdr->len);
 }
 
 /*
@@ -161,7 +171,8 @@ void callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_
 void savefile_callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data) {
     ++packet_count;
 
-    pcap_dump(user, hdr, packet_data);
+    struct callbackCtx *ctx = (struct callbackCtx *)user;
+    pcap_dump((u_char *)ctx->savefile, hdr, packet_data);
 }
 
 /*
