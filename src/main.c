@@ -6,10 +6,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../Includes/datalink.h"
-#include "../Includes/main.h"
-#include "../Includes/output_printer.h"
-#include "../Includes/messages.h"
+#include "net/datalink.h"
+#include "main.h"
+#include "util/output_printer.h"
+#include "util/messages.h"
 
 unsigned long long packet_count; /*For packet captured count*/
 volatile sig_atomic_t stopped = 0;
