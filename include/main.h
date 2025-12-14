@@ -2,9 +2,9 @@
 #define MAIN_H
 
 /*-------------------NEEDED NETWORK AND SIGNAL INCLUDE FILES-------------------------*/
-#include <pcap.h>
 #include <signal.h>
 #include <stdint.h>
+#include <time.h>
 
 /*---------------------GLOBAL VARIABLES-------------------------------------------------*/
 extern unsigned long long packet_count;

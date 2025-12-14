@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "main.h"
@@ -10,8 +9,8 @@
 #include "util/messages.h"
 #include "util/pcap_wrapper.h"
 
-unsigned long long packet_count = 0; /*For packet captured count*/
-volatile sig_atomic_t stopped = 0;
+unsigned long long packet_count = 0; // For packets captured count
+volatile sig_atomic_t stopped = 0;   // will be set by signal handler to tell the program to stop capture
 
 int main(int argc, char **argv) {
     struct userInput input;
@@ -45,7 +44,7 @@ int main(int argc, char **argv) {
     // will contain useful information for the callback function for packets captured.
     struct callbackCtx ctx;
 
-    // if at all saving to a file is required.
+    // if at all saving captured packets to a pcap file is required.
     if (input.flags & OUTPUT_FLAG) {
 	pcap_dumper_t *savefile = pcap_dump_open(handle, input.output_file);
 	if (!savefile) {
@@ -54,9 +53,9 @@ int main(int argc, char **argv) {
 	    return -1;
 	}
 	printf("Saving to file: %s\n", input.output_file);
-	time(&start); // capture start time.
 
 	ctx.savefile = savefile;
+	time(&start); // capture start time.
 	status = capture_packets(&handle, savefile_callback, &ctx, &input);
 	pcap_dump_close(savefile);
     } else {
@@ -94,6 +93,7 @@ int setup_signal_handler() {
 	return -1;
     } else
 	return 0;
+    return 0;
 }
 
 /*
