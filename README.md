@@ -16,7 +16,8 @@
 ## Overview
 
 **SeeWire** is a simple yet powerful **packet sniffer** written entirely in **C**.  
-It captures and inspects raw network packets in real time, giving you a clear view of what’s happening on your network interface — just like `tcpdump`, but lighter and easier to understand for students and developers learning low-level networking.
+It captures and inspects raw network packets in real time, giving you a clear view of what’s happening on your network interface ,
+just like `tcpdump`, but lighter and easier to understand.
 
 ---
 
@@ -34,9 +35,33 @@ It captures and inspects raw network packets in real time, giving you a clear vi
 
 ### Requirements
 - A C compiler (`gcc` or `clang`)
-- Build System Requirements: python3, meson and ninja-build plus the libpcap.so dynamic library.
+- Build System Requirements: meson(requires python3), ninja-build plus the libpcap development files.
 - Root privileges (for raw socket access)
 - Linux or BSD-based OS
+
+### Installation.
+1. Install meson, ninja-build and libpcap packages from your preferred package manager, for example
+```bash
+#debian, ubuntu, kali and the like
+sudo apt install meson ninja-build libpcap-dev
+
+#fedora and friends
+sudo dnf install meson ninja-build libpcap-devel
+```
+
+2. Clone the repository.
+```bash
+git clone https://github.com/kakeetopius/SeeWire.git seewire && cd seewire
+```
+
+3. Build with meson
+```bash
+meson setup build && cd build
+meson compile 
+
+#optionally if you want to install to path.
+sudo meson install 
+```
 
 ### Run
 ```bash
