@@ -22,18 +22,19 @@ It captures and inspects raw network packets in real time, giving you a clear vi
 
 ## Features
 
-- 🔍 Capture live packets from a network interface  
-- 🧩 Decode Ethernet, IP, TCP, UDP, and ICMP headers  
-- 💾 Optional logging to a file for later analysis  
-- ⚡ Built with **raw sockets** and standard POSIX libraries  
-- 💡 Perfect for learning about packet structures and network layers  
+-  Capture live packets from a network interface  
+-  Decode Ethernet, IP, TCP, UDP, and ICMP headers  
+-  Optional logging to a file for later analysis  
+-  Built with libpcap and standard POSIX libraries  
+-  Perfect for learning about packet structures and network layers  
 
 ---
 
-## 🧱 Build Instructions
+##  Build Instructions
 
 ### Requirements
 - A C compiler (`gcc` or `clang`)
+- Build System Requirements: python3, meson and ninja-build plus the libpcap.so dynamic library.
 - Root privileges (for raw socket access)
 - Linux or BSD-based OS
 
@@ -45,37 +46,36 @@ sudo ./seewire -i eth0
 or with logging:
 
 ```bash
-sudo ./seewire -i wlan0 -o capture.log
+sudo ./seewire -i wlan0 -o capture.pcap
 ```
 
 ---
 
-## ⚙️ Usage
+##  Usage
 
 | Option | Description |
 |--------|-------------|
 | `-i <interface>` | Specify the network interface (e.g. `eth0`, `wlan0`) |
 | `-o <file>` | Save captured packets to a file |
-| `-f <filter>` | Apply a simple packet filter (e.g. `tcp`, `udp`) |
-| `-v` | Verbose mode — print detailed header info |
+| `-f <filter>` | Apply a simple packet filter in BPF syntax(e.g. `tcp`, `udp`) |
+| `-in <file>` | Stream packets from a pcap file instead of a network interface.
 | `-h` | Show help message |
 
 **Example:**
 ```bash
-sudo ./seewire -i eth0 -f tcp -v
+sudo ./seewire -i eth0 -f tcp 
 ```
 
 ---
 
-## 🧬 How It Works
+##  How It Works
 
-SeeWire uses **raw sockets** to directly capture frames at the data link layer.  
+SeeWire uses libpcap that uses **raw sockets** or **PF_PACKET** sockets to directly capture frames at the data link layer.  
 Each packet is parsed manually to reveal Ethernet, IP, and transport-layer details.  
-This gives you a low-level, hands-on understanding of how packet sniffers like Wireshark and tcpdump operate internally.
 
 ---
 
-## 📘 Educational Value
+##  Educational Value
 
 SeeWire is designed as a **learning tool** for:
 - Computer networks students exploring packet structures  
@@ -84,26 +84,11 @@ SeeWire is designed as a **learning tool** for:
 
 ---
 
-## Example Output
-
-```
-[+] Capturing on eth0...
--------------------------------------------------
-Frame: 1 | Size: 74 bytes
-Ethernet: src=00:1a:2b:3c:4d:5e dst=ff:ff:ff:ff:ff:ff
-IP: 192.168.1.10 → 192.168.1.1 | Protocol: TCP
-TCP: src port 443 → dst port 56732 | Flags: SYN, ACK
--------------------------------------------------
-```
-
----
-
-## 🛠️ Future Plans
+## Future Plans
 
 - Add IPv6 support  
 - Include DNS and HTTP decoding  
 - Implement colorized terminal output  
-- PCAP file export for Wireshark integration  
 
 ---
 
