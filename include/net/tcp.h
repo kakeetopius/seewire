@@ -1,5 +1,5 @@
-#ifndef C_TCP_H
-#define C_TCP_H
+#ifndef TCP_H
+#define TCP_H
 
 
 #include <sys/types.h>

@@ -1,6 +1,7 @@
+#include <stdio.h>
+
 #include "net/arp.h"
 #include "util/output_printer.h"
-#include <stdio.h>
 
 void handle_arp(const u_char *packet, int msg_len) {
     struct arphdr *arp_header = (struct arphdr *)packet;

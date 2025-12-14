@@ -1,11 +1,11 @@
-#include "net/datalink.h"
-#include "net/arp.h"
-#include "net/ip4.h"
-#include "util/output_printer.h"
-
 #include <net/ethernet.h>
 #include <netinet/ether.h>
 #include <stdio.h>
+
+#include "net/arp.h"
+#include "net/datalink.h"
+#include "net/ip4.h"
+#include "util/output_printer.h"
 
 void handle_ethernet(const u_char *packet, int msg_len) {
     struct ether_header *ether_hdr; // ethernet header
