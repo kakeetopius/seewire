@@ -2,7 +2,7 @@
 
 CC = gcc
 
-CFLAGS = -g -std=c99 -D_DEFAULT_SOURCE -Wall -IIncludes -MMD -MP
+CFLAGS = -g -std=c99 -D_DEFAULT_SOURCE -Wall -Iinclude -MMD -MP
 LDLIBS = -lpcap
 
 SRC = src/main.c src/arp.c src/dns.c src/datalink.c src/ip4.c src/tcp.c src/udp.c src/http.c src/output_printer.c

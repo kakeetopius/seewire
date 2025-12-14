@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "include/messages.h"
-#include "include/output_printer.h"
+#include "util/messages.h"
+#include "util/output_printer.h"
 
 
 void print_banner() {
