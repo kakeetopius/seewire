@@ -6,10 +6,8 @@
 
 int validate_flags(struct userInput *input);
 
-/*
- * Function handle_input is used to parse command line arguments supplied by the user and
- * initialise the command options struct
- */
+ //Function handle_input() is used to parse command line arguments supplied to the program and
+ //initialise the userInput struct for later use.
 int handle_input(int argc, char **argv, struct userInput *input) {
     if (!input) {
 	printf("Uninitialised user input struct");
@@ -106,6 +104,8 @@ int handle_input(int argc, char **argv, struct userInput *input) {
     return validate_flags(input);
 }
 
+//Function validate_flags() checks the flags supplied by the user already put into a userInput struct to determine if the combination
+//of flags given is valid or not.
 int validate_flags(struct userInput *input) {
     // Validating flags.
     int using_iface = 0;

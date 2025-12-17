@@ -5,6 +5,18 @@
 #include "net/dns.h"
 #include "util/output_printer.h"
 
+// DNS Header (12 bytes)
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-------------------------------+-------------------------------+
+// | Transaction ID (16 bits)      | Flags (16 bits)               |
+// +-------------------------------+-------------------------------+
+// | Questions (16 bits)           | Answer RRs (16 bits)          |
+// +-------------------------------+-------------------------------+
+// | Authority RRs (16 bits)       | Additional RRs (16 bits)      |
+// +-------------------------------+-------------------------------+
+// | Queries / Answers / Records (variable)                              |
+// +---------------------------------------------------------------+
 void handle_dns(const u_char *packet, int msg_len) {
     /*-----------if the payload is less than the size of the header.----------*/
     if (msg_len < 12) {
@@ -46,9 +58,16 @@ void handle_dns(const u_char *packet, int msg_len) {
 	handle_response(packet + DNS_HDR_LEN, msg_len - DNS_HDR_LEN, dns_hdr);
 }
 
+// DNS Question Section (variable length)
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +---------------------------------------------------------------+
+// | QNAME (variable, series of labels, each label: length+chars) |
+// +---------------------------------------------------------------+
+// | QTYPE (16 bits) | QCLASS (16 bits)                             |
+// +---------------------------------------------------------------+
 void handle_query(const u_char *message, int msg_len, struct dns_header *dns_hdr) {
-    printf("|*----------------------DNSQR---------------------*|\n");
-
+    print_protocol_header("DNSQR");
     const u_char *start = message;
     const u_char *end = message + msg_len;
 
@@ -82,6 +101,18 @@ void handle_query(const u_char *message, int msg_len, struct dns_header *dns_hdr
     printf("\n");
 }
 
+// DNS Answer / Resource Record Section (variable length)
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +---------------------------------------------------------------+
+// | NAME (variable, pointer or label sequence)                     |
+// +---------------------------------------------------------------+
+// | TYPE (16 bits) | CLASS (16 bits)                               |
+// +-------------------------------+-------------------------------+
+// | TTL (32 bits)                                                 |
+// +---------------------------------------------------------------+
+// | RDLENGTH (16 bits) | RDATA (variable, RDLENGTH bytes)         |
+// +---------------------------------------------------------------+
 void handle_response(const u_char *message, int msg_len, struct dns_header *dns_hdr) {
     printf("|*----------------------DNSRR---------------------*|\n");
     uint16_t flags = ntohs(dns_hdr->flags);

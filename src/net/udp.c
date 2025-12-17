@@ -6,6 +6,16 @@
 #include "net/udp.h"
 #include "util/output_printer.h"
 
+// UDP Header (8 bytes)
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-------------------------------+-------------------------------+
+// | Source Port (16 bits)         | Destination Port (16 bits)    |
+// +-------------------------------+-------------------------------+
+// | Length (16 bits)              | Checksum (16 bits)            |
+// +-------------------------------+-------------------------------+
+// | Data (variable)                                               |
+// +---------------------------------------------------------------+
 void handle_udp(const u_char *packet, int msg_len) {
     print_protocol_header("UDP");
     struct udphdr *udp_header;

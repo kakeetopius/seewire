@@ -6,6 +6,28 @@
 #include "net/tcp.h"
 #include "util/output_printer.h"
 
+
+// TCP Header (minimum 20 bytes)
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-------------------------------+-------------------------------+
+// | Source Port (16 bits)         | Destination Port (16 bits)    |
+// +-------------------------------+-------------------------------+
+// | Sequence Number (32 bits)                                     |
+// +---------------------------------------------------------------+
+// | Acknowledgment Number (32 bits)                               |
+// +---------------------------------------------------------------+
+// | Data Offset (4) | Reserved (3) | NS Flag (1) | CWR | ECE | URG|
+// | ACK | PSH | RST | SYN | FIN                                        |
+// +---------------------------------------------------------------+
+// | Window Size (16 bits)         | Reserved                      |
+// +---------------------------------------------------------------+
+// | Checksum (16 bits) | Urgent Pointer (16 bits)                 |
+// +---------------------------------------------------------------+
+// | Options (variable, if Data Offset > 5)                        |
+// +---------------------------------------------------------------+
+// | Data (variable)                                               |
+// +---------------------------------------------------------------+
 void handle_tcp(const u_char *packet, int msg_len) {
     print_protocol_header("TCP");
     struct c_tcp_header *tcp_header = (struct c_tcp_header *)packet;
@@ -42,3 +64,5 @@ void handle_tcp(const u_char *packet, int msg_len) {
 	printf("\n");
     }
 }
+
+

@@ -2,12 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "main.h"
 #include "net/datalink.h"
 #include "util/output_printer.h"
 #include "util/pcap_wrapper.h"
 
+
+//Function capture_packets() interfaces with the pcap library to capture packets on an already  setup pcap_t handle in 
+//a non-blocking way using select() and monitors the stopped variable set by the signal handler
+//to determine to determine when to stop.
 int capture_packets(pcap_t **handle, pcap_handler callback, struct callbackCtx *ctx, struct userInput *user_input) {
     int fd = pcap_get_selectable_fd(*handle);
     fd_set fds;
@@ -75,9 +80,8 @@ int capture_packets(pcap_t **handle, pcap_handler callback, struct callbackCtx *
 
     return 0;
 }
-/*
- * Function callback is called for every packet sent to the process.
- */
+
+// Function packet_capture_callback() is called for every packet sent to the process.
 void packet_capture_callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data) {
     ++packet_count;
     struct callbackCtx *ctx = (struct callbackCtx *)user;
@@ -89,16 +93,12 @@ void packet_capture_callback(u_char *user, const struct pcap_pkthdr *hdr, const 
     }
 
     printf("─────────────────────────────────────────────────────────────────────────\n");
-    printf("Captured packet\n");
     print_field("Total Packet Length:", (void *)&hdr->len, INTEGER);
-    print_field("Packet Count:", &packet_count, INTEGER);
 
     handle_datalink(packet_data, ctx->dlType, hdr->len);
 }
 
-/*
- * Function savefile_callback is called for every packet sent to the process if dumping to a pcap file is required.
- */
+//Function savefile_callback() is called for every packet sent to the process if dumping to a pcap file is required.
 void savefile_callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char *packet_data) {
     ++packet_count;
 
@@ -106,6 +106,9 @@ void savefile_callback(u_char *user, const struct pcap_pkthdr *hdr, const u_char
     pcap_dump((u_char *)ctx->savefile, hdr, packet_data);
 }
 
+
+//Function set_up_pcap_handle() sets up a connection to the pcap library and applies the necessary settings on the returned handle
+//based on the user input options.
 int set_up_pcap_handle(pcap_t **handle, struct userInput *user_input) {
     char errbuff[PCAP_ERRBUF_SIZE];
     int status;
@@ -291,4 +294,38 @@ int set_up_pcap_handle(pcap_t **handle, struct userInput *user_input) {
 
     pcap_freealldevs(all_devs);
     return 0;
+}
+
+//Function print_capture_stats() prints some statisitcs about the packet capture including start, stop time and duration.
+void print_capture_stats(pcap_t **handle, time_t *start, time_t *stop, int from_input_file) {
+    printf("\n\n*************************************\n");
+
+    if (from_input_file) {
+	printf("Total Packets Found: %llu\n", packet_count);
+	return;
+    }
+
+    struct pcap_stat stats;
+    int status = pcap_stats(*handle, &stats);
+
+    //----Buffers for data and time strings
+    char start_buff[30] = "\0";
+    char stop_buff[30] = "\0";
+
+    //------Getting info data time info as string-------
+    strftime(start_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(start));
+    strftime(stop_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(stop));
+
+    double capture_time = difftime(*stop, *start);
+
+    if (status == 0) {
+	printf("Packets Received: %u\n", stats.ps_recv);
+	printf("Packets dropped by kernel: %u\n", stats.ps_drop);
+    }
+    else {
+	printf("Packets Received: %llu\n", packet_count);
+    }
+    printf("Total Capturing Time: %.2f seconds\n", capture_time);
+    printf("Start Time: %s\n", start_buff);
+    printf("Stop Time:  %s\n", stop_buff);
 }

@@ -71,15 +71,13 @@ int main(int argc, char **argv) {
 	return -1;
     }
 
-    print_capture_stats(&start, &stop);
+    print_capture_stats(&handle, &start, &stop, input.flags & INPUT_FLAG);
     pcap_close(handle);
     return 0;
 }
 
-/*
- * Function setup_signal_handler is used to create a sigaction and initialise it with
- * data that allows handling of the SIGINT interrupt.
- */
+//Function setup_signal_handler() is used to create a sigaction and initialise it with
+//data that allows handling of the SIGINT interrupt.
 int setup_signal_handler() {
     struct sigaction new_action;
 
@@ -96,11 +94,8 @@ int setup_signal_handler() {
     return 0;
 }
 
-/*
- * Function signal handler is called when the process is sent a SIGINT signal
- * such that it can print a summary of the packet capturing including details
- * about start and stop capture time, The number of packets captured.
- */
+//Function signal_handler() is called when the process is sent a SIGINT signal
+//such that it can set the stopped variable to signal to packet_capture function to stop.
 void signal_handler(int signum, siginfo_t *info, void *context) {
     if (info->si_signo != SIGINT) {
 	return;
@@ -109,21 +104,4 @@ void signal_handler(int signum, siginfo_t *info, void *context) {
     stopped = 1;
 }
 
-void print_capture_stats(time_t *start, time_t *stop) {
-    //----Buffers for data and time strings
-    char start_buff[30] = "\0";
-    char stop_buff[30] = "\0";
-
-    //------Getting info data time info as string-------
-    strftime(start_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(start));
-    strftime(stop_buff, 29, "%I:%M:%S %p %d.%b.%y", localtime(stop));
-
-    double capture_time = difftime(*stop, *start);
-
-    printf("\n\n*************************************\n");
-    printf("Total Packets Captured: %llu\n", packet_count);
-    printf("Total Capturing Time: %.2f seconds\n", capture_time);
-    printf("Start Time: %s\n", start_buff);
-    printf("Stop Time:  %s\n", stop_buff);
-}
 

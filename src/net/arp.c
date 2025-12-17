@@ -3,6 +3,24 @@
 #include "net/arp.h"
 #include "util/output_printer.h"
 
+// ARP Header (28 bytes for Ethernet/IPv4)
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-------------------------------+-------------------------------+
+// | Hardware Type (16 bits)       | Protocol Type (16 bits)       |
+// +-------------------------------+-------------------------------+
+// | Hardware Address Length (8)   | Protocol Address Length (8)   |
+// +-------------------------------+-------------------------------+
+// | Operation (16 bits)           |                               |
+// +-------------------------------+-------------------------------+
+// | Sender Hardware Address (48 bits)                            |
+// +---------------------------------------------------------------+
+// | Sender Protocol Address (32 bits)                             |
+// +---------------------------------------------------------------+
+// | Target Hardware Address (48 bits)                             |
+// +---------------------------------------------------------------+
+// | Target Protocol Address (32 bits)                             |
+// +---------------------------------------------------------------+
 void handle_arp(const u_char *packet, int msg_len) {
     struct arphdr *arp_header = (struct arphdr *)packet;
 
@@ -47,13 +65,15 @@ void handle_arp_reply(const u_char *packet, int msg_len) {
     inet_ntop(AF_INET, &(arp_data->dip), dst_ip, INET_ADDRSTRLEN);
 
     char *src_mac = ether_ntoa(&arp_data->smac);
-    char *dst_mac = ether_ntoa(&(arp_data->dmac));
 
     if (src_mac)
 	print_field("Source MAC:", src_mac, STRING);
     print_field("Is At:", src_ip, STRING);
+
+    char *dst_mac = ether_ntoa(&(arp_data->dmac));
     if (dst_mac)
 	print_field("Destination MAC:", dst_mac, STRING);
     print_field("Destination IP:", dst_ip, STRING);
     printf("\n");
 }
+
