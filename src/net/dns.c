@@ -114,7 +114,7 @@ void handle_query(const u_char *message, int msg_len, struct dns_header *dns_hdr
 // | RDLENGTH (16 bits) | RDATA (variable, RDLENGTH bytes)         |
 // +---------------------------------------------------------------+
 void handle_response(const u_char *message, int msg_len, struct dns_header *dns_hdr) {
-    printf("|*----------------------DNSRR---------------------*|\n");
+    print_protocol_header("DNSRR");
     uint16_t flags = ntohs(dns_hdr->flags);
     uint8_t rcode = flags & 0x0F; // 4-bit Response Code
     printf("Response Code:           ");
@@ -237,58 +237,60 @@ void handle_rdata(const u_char *data, enum query_types type, int len, const u_ch
 }
 
 const u_char *print_name(const u_char *start, const u_char *end, const u_char *name_ptr, int depth) {
-    /*Explanation of the paramaters (for me when i forget later)*/
+    /*Explanation of the paramaters*/
     /*
 	start---- The beginning of the dns message(qdata) after the dns header. ie exactly 12 bytes from the beginning of entire dns message
 	end------ The end of the entire dns packet to prevent overflow
 	name_ptr--A pointer to where the name is suspected to be within the message.
-	depth-----Help to prevent infinite recursion, just in case.
     */
-    /*Returns the start of the next query or response*/
+    // Returns the start of the next query or response
 
-    /*Prevents infinite recursion*/
-    if (depth > 10) {
-	printf(" [Error: Too many compression pointers]\n");
-	return NULL;
-    }
+    // Example format of an encoded name with no pointers
+    // 03 'w' 'w' 'w' 06 'g' 'o' 'o' 'g' 'l' 'e' 03 'c' 'o' 'm' 00
 
-    /* if the size left is less than 2 bytes*/
-    if (name_ptr + 2 > end) {
-	return NULL;
-    }
+    int word_len = *name_ptr; // get the length of the first word.
+    u_char *pos_after_ptr = NULL; // will store the position after a pointer.
+    int has_pointer = 0;
 
-    /*checking if the qname field is a pointer to another name*/
-    if ((*name_ptr & 0xC0) == 0xC0) {
-	int k = ((*name_ptr & 0x3F) << 8) + name_ptr[1]; /*Extracting the 14 bits for the offset*/
-	k -= 12;					 /*Minus 12 to skip header*/
+    // loop until we reach the last null terminator 00
+    while (word_len != 0) {
+	// follow the pointers until we find an actual word to print.
+	while ((*name_ptr & 0xc0) == 0xc0) {
+	    has_pointer = 1;
+	    // extracting the bottom 6 bits of the upper part of the offset and then pushing them up 8 bits to make room for the lower part
+	    // of offset
+	    int name_offset = (*name_ptr & 0x3F) << 8;
+	    // appending the bottom 8 bits of the offset to the upper one to get complete offset.
+	    name_offset = name_offset + name_ptr[1];
+	    // subtracting 12 to skip thee general dns header
+	    name_offset -= 12;
 
-	print_name(start, end, (start + k), depth + 1);
-
-	name_ptr += 2; /*Position after the pointer for the very first call (before any recursion)*/
-
-	return name_ptr;
-    } else {
-	int len = *name_ptr; /*The length of the first word*/
-
-	while (len != 0) {
-	    name_ptr++; /*Moving pointer to first letter*/
-	    fprintf(stdout, "%.*s", len, name_ptr);
-	    name_ptr += len; /*Moving the pointer to the next number ie length of the next word*/
-	    len = *name_ptr; /*Getting the new word length*/
-	    if (len != 0)    /*if not at the end yet put a dot*/
-		fprintf(stdout, ".");
-
-	    if ((len & 0xC0) == 0xC0) { /*---If there is a pointer to another name in between somewhere instead of a length---*/
-		int k = ((len & 0x3F) << 8) + name_ptr[1];
-		print_name(start, end, (start + k - 12), depth + 1);
-		break; /*because a pointer in the middle shows no other word here. They are somewhere else hence break*/
+	    if (!pos_after_ptr) {
+		//only update the position after pointer once.
+		pos_after_ptr = (u_char *)name_ptr + 2; // add two because the pointer is 2 bytes.
 	    }
+
+	    // move the name_pointer to correct offset from the start of the dns response.
+	    name_ptr = start + name_offset;
+	    // update the length
+	    word_len = *name_ptr;
 	}
 
-	return ++name_ptr; /*Returning the position after the last '0' of the qdata/resp of  the very first call of this function before any recursion.
-			       ie returning the position after the qdata/resp
-			   */
+	name_ptr++; // move name pointer to first letter.
+	printf("%.*s", word_len, name_ptr);
+
+	name_ptr += word_len; // move name_ptr to next word_len
+	word_len = *name_ptr; // extract the new word length.
+	if (word_len != 0) {
+	    printf(".");
+	}
     }
+
+    if (has_pointer) {
+	return pos_after_ptr;
+    }
+    //else return the position after the null terminator
+    return ++name_ptr;
 }
 
 void print_qtype(enum query_types type) {

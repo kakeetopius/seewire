@@ -1,6 +1,5 @@
-# Ignore all executable files
-/bin
-/out
+bin/
+out/
 .vscode/
 .cache/
 build/
