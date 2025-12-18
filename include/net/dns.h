@@ -45,11 +45,13 @@ enum query_class {
 
 void handle_dns(const u_char *packet, int msg_len);
 
-void print_qtype(enum query_types type);
+char *get_qtype(enum query_types type);
 
-void print_qclass(enum query_class qclass);
+char *get_qclass(enum query_class qclass);
 
-const u_char *print_name(const u_char *start, const u_char *end, const u_char *name_ptr, int depth);
+char *get_rcode_str(int rcode);
+
+const u_char *print_name(const u_char *start, const u_char *end, const u_char *name_ptr);
 
 void handle_response(const u_char *message, int msg_len, struct dns_header *dns_hdr);
 

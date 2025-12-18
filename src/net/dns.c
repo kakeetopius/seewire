@@ -32,25 +32,29 @@ void handle_dns(const u_char *packet, int msg_len) {
     uint16_t flags = ntohs(dns_hdr->flags);
 
     /*--------------Extracting flag fields--------------------------*/
-    uint8_t qr = (flags >> 15) & 0x01;	   // Extracting the type of message(Query / Response)
+    int qr = (flags >> 15) & 0x01;	   // Extracting the type of message(Query / Response)
     uint8_t opcode = (flags >> 11) & 0x0F; // 4-bit Opcode
     uint8_t aa = (flags >> 10) & 0x01;	   // 1-bit Authoritative Answer
     uint8_t tc = (flags >> 9) & 0x01;	   // 1-bit Truncated
     uint8_t rd = (flags >> 8) & 0x01;	   // 1-bit Recursion Desired
     uint8_t ra = (flags >> 7) & 0x01;	   // 1-bit Recursion Available
+    int qdcount = ntohs(dns_hdr->qdcount);
+    int ancount = ntohs(dns_hdr->ancount);
+    int nscount = ntohs(dns_hdr->nscount);
+    int arcount = ntohs(dns_hdr->arcount);
 
     /*----------------Printing out header info---------------------------*/
-    printf("Transaction ID:          %d\n", trans_id);
-    printf("QR:                      %d %s\n", qr, qr == 0 ? "Query" : "Response");
-    printf("Opcode:                  %d %s\n", opcode, opcode == 0 ? "Standard" : "Non Standard\n");
-    printf("Authoritative Answer:    %d\n", aa);
-    printf("Truncated:               %d\n", tc);
-    printf("RA:                      %d %s\n", ra, ra == 1 ? "recursion available" : "");
-    printf("RD:                      %d %s\n", rd, rd == 1 ? "recursion desired" : "");
-    printf("QDCOUNT:                 %d\n", ntohs(dns_hdr->qdcount));
-    printf("ANCOUNT:                 %d\n", ntohs(dns_hdr->ancount));
-    printf("NSCOUNT:                 %d\n", ntohs(dns_hdr->nscount));
-    printf("ARCOUNT:                 %d\n", ntohs(dns_hdr->arcount));
+    print_field("Transaction ID:", &trans_id, UINT_8);
+    print_field("Message Type:", qr == 0 ? "0 Query" : "1 Response", STRING);
+    print_field("Opcode", opcode == 0 ? "0 Standard" : "Non Standard", STRING);
+    print_field("Authoritative Ans:", &aa, UINT_8);
+    print_field("Truncated:", &tc, UINT_8);
+    print_field("RA:", ra == 1 ? "1 recursion available" : "0", STRING);
+    print_field("RD:", rd == 1 ? "1 recursion desired" : "0", STRING);
+    print_field("QDCOUNT:", &qdcount, INTEGER);
+    print_field("ANCOUNT:", &ancount, INTEGER);
+    print_field("NSCOUNT:", &nscount, INTEGER);
+    print_field("ARCOUNT:", &arcount, INTEGER);
 
     if (qr == 0)
 	handle_query(packet + DNS_HDR_LEN, msg_len - DNS_HDR_LEN, dns_hdr);
@@ -68,37 +72,28 @@ void handle_dns(const u_char *packet, int msg_len) {
 // +---------------------------------------------------------------+
 void handle_query(const u_char *message, int msg_len, struct dns_header *dns_hdr) {
     print_protocol_header("DNSQR");
-    const u_char *start = message;
-    const u_char *end = message + msg_len;
 
+    const u_char *message_end = message + msg_len;
     uint16_t qdcount = ntohs(dns_hdr->qdcount);
 
-    const u_char *p = NULL; /*to store the final position after the QDs are printed*/
+    const u_char *name_ptr = message;  //to keep track of start of QNAMEs
 
     for (int i = 0; i < qdcount; i++) {
 	printf("****Query %d****\n", i + 1);
-	printf("    Query Name:          ");
-	if (i == 0) {
-	    p = print_name(start, end, start, 0);
-	} else if (i > 0 && p != NULL) {
-	    p = print_name(p, end, p, 0);
-	}
+	print_field2("Query name:", "", STRING);
+	name_ptr = print_name(message, message_end, name_ptr);
+	printf("\n");
+	message = name_ptr;//move message to the end of the qname
+	
+	uint16_t qtype = ntohs(*(uint16_t *)message); /*Getting two byte query type*/
+	print_field2("Query Type:", get_qtype(qtype), STRING);
+	printf("\n");
+
+	message += 2; //move message past the qtype.
+	uint16_t qclass = ntohs(*(uint16_t *)message); /*Extracting the  QCLASS*/
+	print_field2("Query Class:", get_qclass(qclass), STRING);
 	printf("\n");
     }
-
-    if (p != NULL) {
-	if (p + 4 <= end) {
-	    uint16_t *qtype = (uint16_t *)p; /*Getting two byte query type*/
-	    uint16_t Qtype = ntohs(*qtype);
-	    printf("    Query Type:          ");
-	    print_qtype(Qtype);
-	    uint16_t *qclass = (uint16_t *)(p + 2); /*Extracting the  QCLASS*/
-	    uint16_t Qclass = ntohs(*qclass);
-	    printf("    Query Class:         ");
-	    print_qclass(Qclass);
-	}
-    }
-    printf("\n");
 }
 
 // DNS Answer / Resource Record Section (variable length)
@@ -115,89 +110,68 @@ void handle_query(const u_char *message, int msg_len, struct dns_header *dns_hdr
 // +---------------------------------------------------------------+
 void handle_response(const u_char *message, int msg_len, struct dns_header *dns_hdr) {
     print_protocol_header("DNSRR");
+
     uint16_t flags = ntohs(dns_hdr->flags);
     uint8_t rcode = flags & 0x0F; // 4-bit Response Code
-    printf("Response Code:           ");
+    
+    print_field2("Response Code:", get_rcode_str(rcode), STRING);
+    printf("\n");
 
-    const u_char *start = message; /*To help with domain name printing*/
-    const u_char *end = message + msg_len;
-
-    switch (rcode) {
-    case 0:
-	printf("0 No error\n");
-	break;
-    case 1:
-	printf("1 Format Error\n");
-	break;
-    case 2:
-	printf("2 Server Error\n");
-	break;
-    case 3:
-	printf("3 Non-Existent Domain\n");
-	break;
-    case 4:
-	printf("4 Not Implemented\n");
-	break;
-    case 5:
-	printf("5 Query Refused\n");
-	break;
-    default:
-	printf("Other Code %d", rcode);
-	break;
-    }
+    const u_char *message_start = message;
+    const u_char *message_end = message + msg_len;
 
     uint16_t qdcount = ntohs(dns_hdr->qdcount);
     uint16_t ancount = ntohs(dns_hdr->ancount);
 
-    const u_char *qd_end = NULL; /*to store final position after the names are printed*/
+    const u_char *name_ptr = message; //to keep track of where the QNAMES are.
 
     /*printing out queries in response*/
     for (int i = 0; i < qdcount; i++) {
 	printf("****Query %d****\n", i + 1);
-	printf("    Query Name           ");
-	if (i == 0) {
-	    qd_end = print_name(start, end, start, 0);
-	} else if (i > 0 && qd_end != NULL) {
-	    qd_end = print_name(start, end, qd_end, 0);
-	}
+	print_field2("Query Name:", "", STRING);
+	name_ptr = print_name(message_start, message_end, name_ptr);
 	printf("\n");
+
+	message = name_ptr;//move message to the end of the qname
+	uint16_t qtype = ntohs(*(uint16_t *)message); /*Getting two byte query type*/
+	print_field2("Query Type:", get_qtype(qtype), STRING);
+	printf("\n");
+	message += 2; //move message past the qtype.
+	
+	uint16_t qclass = ntohs(*(uint16_t *)message); /*Extracting the  QCLASS*/
+	print_field2("Query Class:", get_qclass(qclass), STRING);
+	printf("\n");
+	name_ptr = message + 2;
     }
 
-    qd_end += 4; // by passing the qtype and qclass
-    if (qd_end > end) {
+    if (message > message_end) {
 	return;
     }
 
-    const u_char *rp_end = NULL; /*to store final position after responses*/
     for (int i = 0; i < ancount; i++) {
 	printf("****Response %d****\n", i + 1);
-	printf("    Response For         ");
-	if (i == 0) {
-	    rp_end = print_name(start, end, qd_end, 0);
-	} else if (i > 0 && rp_end != NULL) {
-	    rp_end = print_name(start, end, rp_end, 0);
-	} else {
-	    printf("End of Message\n");
-	}
+	print_field2("Response For:", "", STRING);
+	name_ptr = print_name(message_start, message_end, name_ptr);
 	printf("\n");
+	
+	message = name_ptr;
+	uint16_t type = ntohs(*(uint16_t *)(message));
+	uint16_t qclass = ntohs(*(uint16_t *)(message + 2));
+	uint32_t ttl = ntohl(*(uint32_t *)(message + 4));
+	uint16_t dlen = ntohs(*(uint16_t *)(message + 8));
+	const u_char *rdata = (message + 10);
 
-	/*Getting other fields of the answer section*/
-	uint16_t type = ntohs(*(uint16_t *)(rp_end));
-	uint16_t qclass = ntohs(*(uint16_t *)(rp_end + 2));
-	uint32_t ttl = ntohl(*(uint32_t *)(rp_end + 4));
-	uint16_t dlen = ntohs(*(uint16_t *)(rp_end + 8));
-	const u_char *rdata = (rp_end + 10);
+	print_field2("Query Type:", get_qtype(type), STRING);
+	printf("\n");
+	print_field2("Query Class:", get_qclass(qclass), STRING);
+	printf("\n");
+	print_field2("TTL:", &ttl, INTEGER);
+	printf(" seconds \n");
+	print_field2("Data Len:", &dlen, UINT_16);
+	printf("\n");
+	handle_rdata(rdata, type, dlen, message_start, message_end);
 
-	printf("    Query Type:          ");
-	print_qtype(type);
-	printf("    Query Class:         ");
-	print_qclass(qclass);
-	printf("    TTL:                 %d seconds\n", ttl);
-	printf("    Data Len:            %d\n", dlen);
-
-	handle_rdata(rdata, type, dlen, start, end);
-
-	rp_end = rp_end + 10 + dlen; // correcting rp_end to point to next response
+	name_ptr = message + 10 + dlen; // moving the name_ptr to next name
     }
     printf("\n");
 }
@@ -208,7 +182,8 @@ void handle_rdata(const u_char *data, enum query_types type, int len, const u_ch
 	return;
     }
 
-    printf("    Record:              ");
+    print_field2("Record:", "", STRING);
+
     if (type == A) {
 	struct in_addr *ipaddr = (struct in_addr *)data;
 	char ipaddr_str[INET_ADDRSTRLEN];
@@ -220,23 +195,23 @@ void handle_rdata(const u_char *data, enum query_types type, int len, const u_ch
 	inet_ntop(AF_INET6, ipaddr, ipaddr6_str, INET6_ADDRSTRLEN);
 	printf("%s", ipaddr6_str);
     } else if (type == CNAME) {
-	print_name(start, end, data, 0);
+	print_name(start, end, data);
     } else if (type == MX) {
 	uint16_t preference = ntohs(*(uint16_t *)(data));
 	const u_char *mail = (data + 2); /*Plus two to jump preference*/
-	print_name(start, end, mail, 0);
+	print_name(start, end, mail);
 	printf(" (Pref %d)", preference);
     } else if (type == TXT) {
 	uint8_t len = *(uint8_t *)(data);
 	const u_char *txt = (data + 1);
 	printf("%.*s", len, txt);
     } else if (type == NS) {
-	print_name(start, end, data, 0);
+	print_name(start, end, data);
     }
     printf("\n");
 }
 
-const u_char *print_name(const u_char *start, const u_char *end, const u_char *name_ptr, int depth) {
+const u_char *print_name(const u_char *start, const u_char *end, const u_char *name_ptr) {
     /*Explanation of the paramaters*/
     /*
 	start---- The beginning of the dns message(qdata) after the dns header. ie exactly 12 bytes from the beginning of entire dns message
@@ -248,7 +223,7 @@ const u_char *print_name(const u_char *start, const u_char *end, const u_char *n
     // Example format of an encoded name with no pointers
     // 03 'w' 'w' 'w' 06 'g' 'o' 'o' 'g' 'l' 'e' 03 'c' 'o' 'm' 00
 
-    int word_len = *name_ptr; // get the length of the first word.
+    int word_len = *name_ptr;	  // get the length of the first word.
     u_char *pos_after_ptr = NULL; // will store the position after a pointer.
     int has_pointer = 0;
 
@@ -266,7 +241,7 @@ const u_char *print_name(const u_char *start, const u_char *end, const u_char *n
 	    name_offset -= 12;
 
 	    if (!pos_after_ptr) {
-		//only update the position after pointer once.
+		// only update the position after pointer once.
 		pos_after_ptr = (u_char *)name_ptr + 2; // add two because the pointer is 2 bytes.
 	    }
 
@@ -289,75 +264,73 @@ const u_char *print_name(const u_char *start, const u_char *end, const u_char *n
     if (has_pointer) {
 	return pos_after_ptr;
     }
-    //else return the position after the null terminator
+    // else return the position after the null terminator
     return ++name_ptr;
 }
 
-void print_qtype(enum query_types type) {
+char *get_qtype(enum query_types type) {
     switch (type) {
     case A:
-	printf("A");
-	break;
+	return "A";
     case NS:
-	printf("NS");
-	break;
+	return "NS";
     case CNAME:
-	printf("CNAME");
-	break;
+	return "CNAME";
     case SOA:
-	printf("SOA");
-	break;
+	return "S0A";
     case PTR:
-	printf("PTR");
-	break;
+	return "PTR";
     case MX:
-	printf("MX");
-	break;
+	return "MX";
     case TXT:
-	printf("TXT");
-	break;
+	return "TXT";
     case AAAA:
-	printf("AAAA");
-	break;
+	return "AAAA";
     case SRV:
-	printf("SRV");
-	break;
+	return "SRV";
     case CAA:
-	printf("CAA");
-	break;
+	return "CAA";
     case ANY:
-	printf("ANY");
-	break;
+	return "ANY";
     case HTTPS_RR:
-	printf("HTTPS RR");
-	break;
+	return "HTTPS_RR";
     default:
-	printf("OTHER %d", type);
-	break;
+	return "OTHER";
     }
-    printf("\n");
 }
 
-void print_qclass(enum query_class qclass) {
+char *get_qclass(enum query_class qclass) {
     switch (qclass) {
     case IN:
-	printf("IN");
-	break;
+	return "IN";
     case CS:
-	printf("CS");
-	break;
+	return "CS";
     case CH:
-	printf("CH");
-	break;
+	return "CH";
     case HS:
-	printf("HS");
-	break;
+	return "HS";
     case ANY_CLASS:
-	printf("ANY");
-	break;
+	return "ANY";
     default:
-	printf("OTHER %d", qclass);
-	break;
+	return "OTHER";
     }
-    printf("\n");
+}
+
+char *get_rcode_str(int rcode) {
+    switch (rcode) {
+    case 0:
+	return "0 No error";
+    case 1:
+	return "1 Format Error";
+    case 2:
+	return "2 Server Error";
+    case 3:
+	return "3 Non-Existent Domain";
+    case 4:
+	return "4 Not Implemented";
+    case 5:
+	return "5 Query Refused";
+    default:
+	return "Other Code";
+    }
 }
