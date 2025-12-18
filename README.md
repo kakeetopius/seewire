@@ -111,7 +111,7 @@ SeeWire is designed as a **learning tool** for:
 
 ## Future Plans
 
-- Include additional protocl decoding ICMP, SMTP, DNS and HTTP etc  
+- Include additional protocol decoding ICMP, SMTP, DNS and HTTP etc  
 - Implement colorized terminal output  
 
 ---
