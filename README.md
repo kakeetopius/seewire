@@ -111,14 +111,12 @@ SeeWire is designed as a **learning tool** for:
 
 ## Future Plans
 
-- Add IPv6 support  
-- Include DNS and HTTP decoding  
+- Include additional protocl decoding ICMP, SMTP, DNS and HTTP etc  
 - Implement colorized terminal output  
 
 ---
 
-## ✨ Author
+## Author
 
 **Pius Kakeeto**  
 *Network and systems enthusiast, programmer, and security engineer in training*
-> “Sniff. Decode. Learn.”
