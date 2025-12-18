@@ -1,6 +1,6 @@
-# 👁️ SeeWire
+# 👁️ seewire
 
-> **SeeWire** — A lightweight, C-based packet sniffer that lets you *see what’s really on the wire.*
+> **seewire** — A lightweight, C-based packet sniffer that lets you *see what’s really on the wire.*
 
 ```
   _________             __      __.__                
@@ -15,7 +15,7 @@
 
 ## Overview
 
-**SeeWire** is a simple yet powerful **packet sniffer** written entirely in **C**.  
+**seewire** is a simple **packet sniffer** written entirely in **C**.  
 It captures and inspects raw network packets in real time, giving you a clear view of what’s happening on your network interface ,
 just like `tcpdump`, but lighter and easier to understand.
 
